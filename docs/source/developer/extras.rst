@@ -4,7 +4,7 @@ Extras
 The functionality in addition to the core validation and detection typically requires
 external dependencies and should be put into the separate `extras` project within the
 apa Please use an "extra" hook and implement the method in an "extras" package in the
-`extension template <https://github.com/ArcanaFramework/fileformats-extension-template>`__,
+`extension template <https://github.com/python-fileformats/fileformats-extension-template>`__,
 to be called fileformats-<yournamespace>-extras.
 
 Hooks and implementations
@@ -18,7 +18,7 @@ validation, and should be implemented in a separate package if they have externa
 dependencies to keep the main and extension packages dependency free. The
 standard place to put these extras-implementations is in the sister "extras" package
 named `fileformats-<yournamespace>-extras`, located in the `extras` directory in the
-extension package root (see `<https://github.com/ArcanaFramework/fileformats-extension-template>`__
+extension package root (see `<https://github.com/python-fileformats/fileformats-extension-template>`__
 for further instructions). It is possible to implement extra methods in other modules,
 however, the extras package associated with formats namespace will be loaded by default
 when a hooked method is accessed.

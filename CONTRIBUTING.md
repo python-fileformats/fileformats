@@ -136,10 +136,10 @@ You can see a list of current contributors in our [zenodo file][link_zenodo].
 If you are new to the project, don't forget to add your name and affiliation there!
 
 
-[link_fileformats]: https://github.com/ArcanaFramework/fileformats
+[link_fileformats]: https://github.com/python-fileformats/fileformats
 [link_signupinstructions]: https://help.github.com/articles/signing-up-for-a-new-github-account
-[link_new_issues]: https://github.com/ArcanaFramework/fileformats/issues/new/choose
-[link_doc_issues]: https://github.com/ArcanaFramework/fileformats/issues/new?assignees=&labels=documentation&template=documentation.md&title=
+[link_new_issues]: https://github.com/python-fileformats/fileformats/issues/new/choose
+[link_doc_issues]: https://github.com/python-fileformats/fileformats/issues/new?assignees=&labels=documentation&template=documentation.md&title=
 
 [link_pullrequest]: https://help.github.com/articles/creating-a-pull-request-from-a-fork/
 [link_fork]: https://help.github.com/articles/fork-a-repo/
@@ -148,4 +148,4 @@ If you are new to the project, don't forget to add your name and affiliation the
 [link_push]: https://help.github.com/en/github/using-git/pushing-commits-to-a-remote-repository
 [link_commit]: https://git-scm.com/docs/git-commit
 
-[link_zenodo]: https://github.com/ArcanaFramework/fileformats/master/.zenodo.json
+[link_zenodo]: https://github.com/python-fileformats/fileformats/master/.zenodo.json

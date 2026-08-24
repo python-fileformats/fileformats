@@ -1,11 +1,11 @@
 # FileFormats
 
-[![CI/CD](https://github.com/arcanaframework/fileformats/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/arcanaframework/fileformats/actions/workflows/ci-cd.yml)
-[![Codecov](https://codecov.io/gh/arcanaframework/fileformats/branch/main/graph/badge.svg?token=UIS0OGPST7)](https://codecov.io/gh/arcanaframework/fileformats)
+[![CI/CD](https://github.com/python-fileformats/fileformats/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/python-fileformats/fileformats/actions/workflows/ci-cd.yml)
+[![Codecov](https://codecov.io/gh/python-fileformats/fileformats/branch/main/graph/badge.svg?token=UIS0OGPST7)](https://codecov.io/gh/python-fileformats/fileformats)
 ![Static Badge](https://img.shields.io/badge/type%20checked-mypy-039dfc)
 [![Python Versions](https://img.shields.io/pypi/pyversions/fileformats.svg)](https://pypi.python.org/pypi/fileformats/)
 [![Latest Version](https://img.shields.io/pypi/v/fileformats.svg)](https://pypi.python.org/pypi/fileformats/)
-[![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](https://arcanaframework.github.io/fileformats/)
+[![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](https://python-fileformats.github.io/fileformats/)
 
 <img src="./docs/source/_static/images/logo_small.png" alt="Logo Small" style="float: right; width: 100mm">
 
@@ -22,7 +22,7 @@ locate data files, directories containing certain file types, or to peek at meta
 fields to define specific sub-types (e.g. functional MRI DICOM file set). These file-sets
 with auxiliary files can be moved, copied and hashed like they are a single file object.
 
-See the [extension template](https://github.com/ArcanaFramework/fileformats-extension-template)
+See the [extension template](https://github.com/python-fileformats/fileformats-extension-template)
 for instructions on how to design *FileFormats* extensions modules to augment the
 standard file-types implemented in the main repository with custom domain/vendor-specific
 file-format types (e.g. [fileformats-medimage](https://pypi.org/project/fileformats-medimage/)).
@@ -34,11 +34,11 @@ added to *FileFormats* by semi-automatically scraping the
 [IANA MIME types](https://www.iana_mime.org/assignments/media-types/media-types.xhtml) website for file
 extensions and magic numbers. As such, many of the formats in the library have not been properly
 tested on real data and so should be treated with some caution. If you encounter any issues with an implemented file
-type, please raise an issue in the [GitHub tracker](https://github.com/ArcanaFramework/fileformats/issues).
+type, please raise an issue in the [GitHub tracker](https://github.com/python-fileformats/fileformats/issues).
 
 A small selection of vendor-specific types can be found under `fileformats.vendor.*`. Support for additional vendor-specific
 formats can be added via plugin (see the
-[extension template](https://github.com/ArcanaFramework/fileformats-extension-template)).
+[extension template](https://github.com/python-fileformats/fileformats-extension-template)).
 
 ## Installation
 
@@ -71,14 +71,15 @@ and can be installed along with their "extras" package similarly
 Using the `WithMagicNumber` mixin class, the `Png` format can be defined concisely as
 
 ```python
-    from fileformats.generic import File
-    from fileformats.core.mixin import WithMagicNumber
+from fileformats.generic import File
+from fileformats.core.mixin import WithMagicNumber
 
-    class Png(WithMagicNumber, File):
-        binary = True
-        ext = ".png"
-        iana_mime = "image/png"
-        magic_number = b".PNG"
+
+class Png(WithMagicNumber, File):
+    binary = True
+    ext = ".png"
+    iana_mime = "image/png"
+    magic_number = b".PNG"
 ```
 
 Files can then be checked to see whether they are of PNG format by
@@ -123,7 +124,7 @@ restricted by using the `candidates` keyword argument.
 
 While not implemented in the main File-formats itself, file-formats provides hooks for
 other packages to implement extra behaviour such as format conversion.
-The `fileformats-extras <https://github.com/ArcanaFramework/fileformats-extras>`__
+The `fileformats-extras <https://github.com/python-fileformats/fileformats-extras>`__
 implements a number of converters between standard file-format types, e.g. archive types
 to/from generic file/directories, which if installed can be called using the `convert()` method.
 
@@ -140,21 +141,19 @@ The converters are implemented in the [Pydra](https://pydra.readthedocs.io) data
 wider [Pydra](https://pydra.readthedocs.io) workflows by creating a converter task
 
 ```python
-    import pydra
-    from pydra.tasks.mypackage import MyTask
-    from fileformats.application import Json, Yaml
+import pydra
+from pydra.tasks.mypackage import MyTask
+from fileformats.application import Json, Yaml
 
-    wf = pydra.Workflow(name="a_workflow", input_spec=["in_json"])
-    wf.add(
-        Yaml.get_converter(Json, name="json2yaml", in_file=wf.lzin.in_json)
+wf = pydra.Workflow(name="a_workflow", input_spec=["in_json"])
+wf.add(Yaml.get_converter(Json, name="json2yaml", in_file=wf.lzin.in_json))
+wf.add(
+    MyTask(
+        name="my_task",
+        in_file=wf.json2yaml.lzout.out_file,
     )
-    wf.add(
-        MyTask(
-            name="my_task",
-            in_file=wf.json2yaml.lzout.out_file,
-        )
-    )
-    ...
+)
+...
 ```
 
 Alternatively, the conversion can be executed outside of a [Pydra](https://pydra.readthedocs.io) workflow with

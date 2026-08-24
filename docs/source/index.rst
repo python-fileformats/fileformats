@@ -2,19 +2,19 @@
 
 FileFormats
 ===========
-.. image:: https://github.com/arcanaframework/fileformats/actions/workflows/ci-cd.yml/badge.svg
-   :target: https://github.com/arcanaframework/fileformats/actions/workflows/ci-cd.yml
-.. image:: https://codecov.io/gh/arcanaframework/fileformats/branch/main/graph/badge.svg?token=UIS0OGPST7
-   :target: https://codecov.io/gh/arcanaframework/fileformats
+.. image:: https://github.com/python-fileformats/fileformats/actions/workflows/ci-cd.yml/badge.svg
+   :target: https://github.com/python-fileformats/fileformats/actions/workflows/ci-cd.yml
+.. image:: https://codecov.io/gh/python-fileformats/fileformats/branch/main/graph/badge.svg?token=UIS0OGPST7
+   :target: https://codecov.io/gh/python-fileformats/fileformats
 .. image:: https://img.shields.io/pypi/pyversions/fileformats.svg
    :target: https://pypi.python.org/pypi/fileformats/
    :alt: Supported Python versions
 .. image:: https://img.shields.io/pypi/v/fileformats.svg
    :target: https://pypi.python.org/pypi/fileformats/
    :alt: Latest Version
-.. image:: https://img.shields.io/github/stars/ArcanaFramework/fileformats?label=GitHub
+.. image:: https://img.shields.io/github/stars/python-fileformats/fileformats?label=GitHub
    :alt: GitHub stars
-   :target: https://github.com/ArcanaFramework/fileformats
+   :target: https://github.com/python-fileformats/fileformats
 
 
 *Fileformats* is a Python library for file-type detection/validation, MIME-type lookup and file handling.

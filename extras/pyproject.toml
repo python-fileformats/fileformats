@@ -7,10 +7,7 @@ name = "fileformats-extras"
 description = "Extra methods for accessing and manipulating the underlying data referenced by fileformats classes"
 readme = "README.rst"
 requires-python = ">=3.11"
-dependencies = [
-    "fileformats",
-    "pydra >=1.0a",
-]
+dependencies = ["fileformats", "pydra >=1.0a"]
 license = { file = "LICENSE" }
 authors = [{ name = "Thomas G. Close", email = "tom.g.close@gmail.com" }]
 maintainers = [{ name = "Thomas G. Close", email = "tom.g.close@gmail.com" }]
@@ -32,31 +29,18 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = ["black", "pre-commit", "codespell", "flake8", "flake8-pyproject"]
-test = [
-    "pytest >=6.2.5",
-    "pytest-env>=0.6.2",
-    "pytest-cov>=2.12.1",
-    "codecov",
-]
-application = [
-    "PyYAML>=6.0",
-    "pydicom >=2.3",
-    "medimages4tests",
-]
+test = ["pytest >=6.2.5", "pytest-env>=0.6.2", "pytest-cov>=2.12.1", "codecov"]
+application = ["PyYAML>=6.0", "pydicom >=2.3", "medimages4tests"]
 audio = []
-image = [
-    "imageio >=2.24.0",
-]
+image = ["imageio >=2.24.0"]
 model = []
 text = []
 video = []
-vnd_openxmlformats = [
-    "python-docx >= 1.2.0",
-]
+vnd_openxmlformats = ["python-docx >= 1.2.0"]
 
 
 [project.urls]
-repository = "https://github.com/ArcanaFramework/fileformats"
+repository = "https://github.com/python-fileformats/fileformats"
 
 [tool.hatch.version]
 source = "vcs"
