@@ -7,11 +7,11 @@ still being flexible enough handle any weird whacky file formats used in obscure
 
 Format classes not covered by `IANA Media Types`_ should be implemented in a separate
 *FileFormats* extension packages. New extension packages can be conveniently created from
-the FileFormats extension template, `<https://github.com/ArcanaFramework/fileformats-medimage>`_,
+the FileFormats extension template, `<https://github.com/python-fileformats/fileformats-medimage>`_,
 including CI/CD workflows.
 
 Extension packages add a new unique format namespace under the ``fileformats`` namespace package.
-For example, the `FileFormats Medimage Extension <https://github.com/ArcanaFramework/fileformats-medimage>`__
+For example, the `FileFormats Medimage Extension <https://github.com/python-fileformats/fileformats-medimage>`__
 implements a range of file formats used in medical imaging research under the
 ``fileformats.medimage`` namespace.
 
