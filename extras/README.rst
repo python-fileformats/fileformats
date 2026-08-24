@@ -1,9 +1,9 @@
 FileFormats Extras
 ==================
-.. image:: https://github.com/arcanaframework/fileformats/actions/workflows/ci-cd.yml/badge.svg
-   :target: https://github.com/arcanaframework/fileformats/actions/workflows/ci-cd.yml
-.. image:: https://codecov.io/gh/arcanaframework/fileformats/branch/main/graph/badge.svg?token=UIS0OGPST7
-   :target: https://codecov.io/gh/arcanaframework/fileformats
+.. image:: https://github.com/python-fileformats/fileformats/actions/workflows/ci-cd.yml/badge.svg
+   :target: https://github.com/python-fileformats/fileformats/actions/workflows/ci-cd.yml
+.. image:: https://codecov.io/gh/python-fileformats/fileformats/branch/main/graph/badge.svg?token=UIS0OGPST7
+   :target: https://codecov.io/gh/python-fileformats/fileformats
 .. image:: https://img.shields.io/pypi/pyversions/fileformats-extras.svg
    :target: https://pypi.python.org/pypi/fileformats-extras/
    :alt: Supported Python versions
@@ -11,12 +11,12 @@ FileFormats Extras
    :target: https://pypi.python.org/pypi/fileformats-extras/
    :alt: Latest Version
 .. image:: https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat
-    :target: https://arcanaframework.github.io/fileformats/
+    :target: https://python-fileformats.github.io/fileformats/
     :alt: Documentation Status
 
 
 This is a extras module for the
-`fileformats <https://github.com/ArcanaFramework/fileformats>`__ package, which provides
+`fileformats <https://github.com/python-fileformats/fileformats>`__ package, which provides
 additional functionality to format classes (i.e. aside from basic identification and validation), such as
 conversion tools, metadata parsers, test data generators, etc...
 
