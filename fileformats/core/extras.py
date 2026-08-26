@@ -110,18 +110,34 @@ def extra_implementation(
             if isinstance(mtype, str) and not isinstance(ftype, str):
                 mtype = eval(mtype, implementation.__globals__)
 
-            if morigin := ty.get_origin(mtype):
-                if forigin := ty.get_origin(ftype):
-                    if morigin != forigin:
+            if mtype is ty.Any or mtype == ftype:  # type: ignore[comparison-overlap]
+                return True
+
+            morigin = ty.get_origin(mtype)
+            forigin = ty.get_origin(ftype)
+
+            if morigin is not None or forigin is not None:
+                # Reduce to the concrete origin classes for a subclass
+                # comparison, e.g. `dict` for both `dict` and
+                # `ty.Dict[str, int]`, falling back to the annotation itself
+                # if it isn't a parameterised generic (e.g. a bare `dict`
+                # being matched against `ty.Mapping[str, int]`)
+                mcls = morigin if morigin is not None else mtype
+                fcls = forigin if forigin is not None else ftype
+                if inspect.isclass(mcls) and inspect.isclass(fcls):
+                    if not issubclass(fcls, mcls):
                         return False
-                    return all(
-                        type_match(mt, ft)
-                        for mt, ft in zip_longest(
-                            ty.get_args(mtype), ty.get_args(ftype)
-                        )
-                    )
-                else:
+                elif mcls != fcls:
+                    # origins that aren't classes, e.g. typing.Union,
+                    # typing.Literal, etc.
                     return False
+                margs = ty.get_args(mtype)
+                fargs = ty.get_args(ftype)
+                if margs and fargs:
+                    return all(
+                        type_match(mt, ft) for mt, ft in zip_longest(margs, fargs)
+                    )
+                return True
 
             return (
                 mtype is ty.Any  # type: ignore[comparison-overlap]
