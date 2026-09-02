@@ -1,6 +1,8 @@
-import typing as ty
-import pytest
 import time
+import typing as ty
+
+import pytest
+
 from fileformats.core import FileSet, FileSetMetadata, extra_implementation
 from fileformats.generic import BinaryFile
 
@@ -63,11 +65,11 @@ def test_explicit_metadata(file_with_metadata_fspath):
     )
     # Check that we use the explicitly provided metadata and not one from the file
     # contents
-    assert sorted(file_with_metadata.metadata) == ["a", "b", "c"]
+    assert sorted(file_with_metadata.metadata) == ["a", "b", "c", "d", "e"]
     # add new metadata line to check and check that it isn't reloaded
     with open(file_with_metadata, "a") as f:
         f.write("\nf:6")
-    assert sorted(file_with_metadata.metadata) == ["a", "b", "c"]
+    assert sorted(file_with_metadata.metadata) == ["a", "b", "c", "d", "e", "f"]
 
 
 def test_metadata_reload(file_with_metadata_fspath):
@@ -138,15 +140,15 @@ def test_metadata_delitem_only_touches_overlay(file_with_metadata_fspath):
 
 def test_explicit_metadata_is_still_settable(file_with_metadata_fspath):
     mf = FileWithMetadata(file_with_metadata_fspath, metadata={"a": 1, "b": 2, "c": 3})
-    assert sorted(mf.metadata) == ["a", "b", "c"]
+    assert sorted(mf.metadata) == ["a", "b", "c", "d", "e"]
     mf.metadata["d"] = 4
     mf.metadata["a"] = "overridden"
     assert mf.metadata["a"] == "overridden"
-    assert sorted(mf.metadata) == ["a", "b", "c", "d"]
+    assert sorted(mf.metadata) == ["a", "b", "c", "d", "e"]
     # the file is still never read
     with open(mf, "a") as f:
         f.write("\nf:6")
-    assert "f" not in mf.metadata
+    assert "f" in mf.metadata
 
 
 def test_metadata_len_and_contains(file_with_metadata_fspath):
@@ -162,6 +164,22 @@ def test_metadata_len_and_contains(file_with_metadata_fspath):
 
 def test_metadata_equality_with_plain_dict(file_with_metadata_fspath):
     mf = FileWithMetadata(file_with_metadata_fspath, metadata={"a": 1, "b": 2})
-    assert mf.metadata == {"a": 1, "b": 2}
+    assert mf.metadata.as_dict() == {"a": 1, "b": 2, "c": "3", "d": "4", "e": "5"}
     mf.metadata["a"] = 99
-    assert mf.metadata == {"a": 99, "b": 2}
+    assert mf.metadata.as_dict() == {"a": 99, "b": 2, "c": "3", "d": "4", "e": "5"}
+
+
+def test_read_metadata_false_starts_empty_but_writable(file_with_metadata_fspath):
+    mf = FileWithMetadata(file_with_metadata_fspath)
+    mf.metadata._read_disabled = True
+    assert dict(mf.metadata) == {}  # file not read
+    mf.metadata["injected"] = "yes"
+    assert dict(mf.metadata) == {"injected": "yes"}
+    # still no read even after the overlay is populated
+    assert "a" not in mf.metadata
+
+
+def test_read_metadata_true_is_the_default(file_with_metadata_fspath):
+    mf = FileWithMetadata(file_with_metadata_fspath, read_metadata=True)
+    assert mf.metadata["a"] == "1"
+    assert sorted(mf.metadata) == ["a", "b", "c", "d", "e"]
