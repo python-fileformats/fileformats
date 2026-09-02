@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.fileset - FileFormats v0.18.0</title>
+        <title>fileformats.core.fileset - FileFormats v0.18.1</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.18.0</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.18.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.18.0</span>
+  <span class="sidebar-brand-text">FileFormats v0.18.1</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -330,6 +330,76 @@
 <span class="n">T</span> <span class="o">=</span> <span class="n">ty</span><span class="o">.</span><span class="n">TypeVar</span><span class="p">(</span><span class="s2">"T"</span><span class="p">)</span>
 
 
+<span class="k">class</span><span class="w"> </span><span class="nc">FileSetMetadata</span><span class="p">(</span><span class="n">ty</span><span class="o">.</span><span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">"""A dict-like, writable view of a :class:`FileSet`'s metadata.</span>
+
+<span class="sd">    It layers two sources:</span>
+
+<span class="sd">    * an in-memory **overlay** of values set directly on the object - either via</span>
+<span class="sd">      ``fileset.metadata[key] = value`` or the ``metadata=`` argument to</span>
+<span class="sd">      ``FileSet(...)`` - and</span>
+<span class="sd">    * the metadata **loaded** from the file(s) by the ``read_metadata`` extra hook.</span>
+
+<span class="sd">    Overlay entries take precedence over loaded entries with the same key. The loaded</span>
+<span class="sd">    layer is cached and re-read when the file mtimes change (see</span>
+<span class="sd">    ``FileSet._loaded_metadata``); the overlay is kept separately from that cache, so</span>
+<span class="sd">    values set on the object are not lost when the loaded layer is invalidated. When</span>
+<span class="sd">    the ``FileSet`` was constructed with an explicit ``metadata=`` mapping the file is</span>
+<span class="sd">    not read at all and only the overlay is exposed.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">fileset</span><span class="p">:</span> <span class="s2">"FileSet"</span><span class="p">,</span>
+        <span class="n">overlay</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">ty</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">read_disabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fileset</span> <span class="o">=</span> <span class="n">fileset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_overlay</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">overlay</span><span class="p">)</span> <span class="k">if</span> <span class="n">overlay</span> <span class="k">else</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_read_disabled</span> <span class="o">=</span> <span class="n">read_disabled</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_loaded</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_disabled</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{}</span>
+        <span class="n">loaded</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fileset</span><span class="o">.</span><span class="n">_loaded_metadata</span>
+        <span class="k">return</span> <span class="n">loaded</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_overlay</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaded</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_overlay</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_overlay</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Iterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_overlay</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaded</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_overlay</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">key</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_overlay</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">|</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaded</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_overlay</span> <span class="ow">or</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaded</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">loaded</span> <span class="o">=</span> <span class="s2">"read-disabled"</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_disabled</span> <span class="k">else</span> <span class="s2">"lazy"</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(overlay=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_overlay</span><span class="si">!r}</span><span class="s2">, loaded=&lt;</span><span class="si">{</span><span class="n">loaded</span><span class="si">}</span><span class="s2">&gt;)"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""A plain ``dict`` snapshot with the overlay merged over the loaded metadata."""</span>
+        <span class="n">merged</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loaded</span><span class="p">)</span>
+        <span class="n">merged</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_overlay</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">merged</span>
+
+
 <div class="viewcode-block" id="FileSet">
 <a class="viewcode-back" href="../../../api.html#fileformats.core.FileSet">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">FileSet</span><span class="p">(</span><span class="n">DataType</span><span class="p">):</span>
@@ -343,9 +413,15 @@
 <span class="sd">    ----------</span>
 <span class="sd">    *fspaths : Path | str | FileSet | Collection[Path | str | FileSet]</span>
 <span class="sd">        a set of file-system paths pointing to all the resources in the file-set</span>
-<span class="sd">    metadata : dict[str, Any]</span>
+<span class="sd">    metadata : dict[str, Any] | None</span>
 <span class="sd">        metadata associated with the file-set, typically lazily loaded via `read_metadata`</span>
-<span class="sd">        extra hook but can be provided directly at the time of instantiation</span>
+<span class="sd">        extra hook but can be provided directly at the time of instantiation. Providing it</span>
+<span class="sd">        here also suppresses reading from the file(s); further entries can still be added</span>
+<span class="sd">        via ``fileset.metadata[key] = value``.</span>
+<span class="sd">    read_metadata : bool</span>
+<span class="sd">        whether the file(s) may be read (lazily, via the `read_metadata` extra) to</span>
+<span class="sd">        populate ``metadata``. Pass ``False`` to start from an empty, in-memory-only</span>
+<span class="sd">        metadata mapping that is still writable via ``fileset.metadata[key] = value``.</span>
 <span class="sd">    **load_kwargs : ty.Any</span>
 <span class="sd">        Any keyword arguments to be passed through to `read_metadata` and `load`</span>
 <span class="sd">        implementations when loading metadata and data to fill the `metadata` and `contents`</span>
@@ -386,10 +462,18 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_fspaths</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_additional_fspaths</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">metadata</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">metadata</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"FileSet metadata value needs to be None or dict, not </span><span class="si">{</span><span class="n">metadata</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2">)"</span>
             <span class="p">)</span>
+        <span class="c1"># The file(s) are not read for metadata when ``read_metadata=False`` is passed</span>
+        <span class="c1"># or when an explicit ``metadata=`` mapping is given; in either case values can</span>
+        <span class="c1"># still be added/overridden later via ``fileset.metadata[key] = value`` (see</span>
+        <span class="c1"># ``FileSetMetadata``).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span> <span class="o">=</span> <span class="n">FileSetMetadata</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">overlay</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_properties</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_validate_fspaths</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -404,13 +488,10 @@
             <span class="p">)</span>
             <span class="n">present_parents</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">fspath</span> <span class="ow">in</span> <span class="n">missing</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">fspath</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="n">fspath</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-                        <span class="n">present_parents</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fspath</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">fspath</span> <span class="ow">and</span> <span class="n">fspath</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                    <span class="n">present_parents</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fspath</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">parent</span> <span class="ow">in</span> <span class="n">present_parents</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">+=</span> <span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"</span><span class="se">\n\n</span><span class="s2">Files in the present parent directory '</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span><span class="si">}</span><span class="s2">' are:</span><span class="se">\n</span><span class="s2">"</span>
-                <span class="p">)</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">"</span><span class="se">\n\n</span><span class="s2">Files in the present parent directory '</span><span class="si">{</span><span class="n">parent</span><span class="si">!s}</span><span class="s2">' are:</span><span class="se">\n</span><span class="s2">"</span>
                 <span class="n">msg</span> <span class="o">+=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">parent</span><span class="o">.</span><span class="n">iterdir</span><span class="p">())</span>
             <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
@@ -589,11 +670,9 @@
         <span class="k">return</span> <span class="n">possible</span>
 
     <span class="nd">@mtime_cached_property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""Lazily load metadata from `read_metadata` extra if implemented, returning an</span>
-<span class="sd">        empty metadata array if not"""</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_explicit_metadata</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_explicit_metadata</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_loaded_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Metadata read from the file(s) via the ``read_metadata`` extra, cached until</span>
+<span class="sd">        the file mtimes change. Returns an empty mapping when no reader is available."""</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_metadata</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_load_kwargs</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">FileFormatsExtrasPkgUninstalledError</span><span class="p">:</span>
@@ -604,6 +683,22 @@
         <span class="k">except</span> <span class="n">FileFormatsExtrasError</span><span class="p">:</span>
             <span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">return</span> <span class="n">metadata</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"FileSetMetadata"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""A dict-like, writable view of the file-set's metadata (see</span>
+<span class="sd">        :class:`FileSetMetadata`).</span>
+
+<span class="sd">        Reading falls back from an in-memory overlay to the metadata loaded lazily from</span>
+<span class="sd">        the file(s) via the ``read_metadata`` extra. Values assigned via</span>
+<span class="sd">        ``fileset.metadata[key] = value`` are stored in the overlay: they take</span>
+<span class="sd">        precedence over the loaded metadata and persist even when the loaded layer is</span>
+<span class="sd">        re-read after the file(s) change."""</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>  <span class="c1"># e.g. instance created without calling __init__</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span> <span class="o">=</span> <span class="n">FileSetMetadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span>
 
     <span class="nd">@mtime_cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">contents</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">:</span>
@@ -2375,7 +2470,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=07aabbbe"></script>
+</div><script src="../../../_static/documentation_options.js?v=98e82f24"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
