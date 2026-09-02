@@ -72,6 +72,76 @@ logger = logging.getLogger("fileformats")
 T = ty.TypeVar("T")
 
 
+class FileSetMetadata(ty.MutableMapping[str, ty.Any]):
+    """A dict-like, writable view of a :class:`FileSet`'s metadata.
+
+    It layers two sources:
+
+    * an in-memory **overlay** of values set directly on the object - either via
+      ``fileset.metadata[key] = value`` or the ``metadata=`` argument to
+      ``FileSet(...)`` - and
+    * the metadata **loaded** from the file(s) by the ``read_metadata`` extra hook.
+
+    Overlay entries take precedence over loaded entries with the same key. The loaded
+    layer is cached and re-read when the file mtimes change (see
+    ``FileSet._loaded_metadata``); the overlay is kept separately from that cache, so
+    values set on the object are not lost when the loaded layer is invalidated. When
+    the ``FileSet`` was constructed with an explicit ``metadata=`` mapping the file is
+    not read at all and only the overlay is exposed.
+    """
+
+    def __init__(
+        self,
+        fileset: "FileSet",
+        overlay: ty.Optional[ty.Mapping[str, ty.Any]] = None,
+        read_disabled: bool = False,
+    ) -> None:
+        self._fileset = fileset
+        self._overlay: ty.Dict[str, ty.Any] = dict(overlay) if overlay else {}
+        self._read_disabled = read_disabled
+
+    @property
+    def _loaded(self) -> ty.Mapping[str, ty.Any]:
+        if self._read_disabled:
+            return {}
+        loaded: ty.Mapping[str, ty.Any] = self._fileset._loaded_metadata
+        return loaded
+
+    def __getitem__(self, key: str) -> ty.Any:
+        try:
+            return self._overlay[key]
+        except KeyError:
+            return self._loaded[key]
+
+    def __setitem__(self, key: str, value: ty.Any) -> None:
+        self._overlay[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self._overlay[key]
+
+    def __iter__(self) -> ty.Iterator[str]:
+        yield from self._overlay
+        for key in self._loaded:
+            if key not in self._overlay:
+                yield key
+
+    def __len__(self) -> int:
+        return len(self._overlay.keys() | self._loaded.keys())
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._overlay or key in self._loaded
+
+    def __repr__(self) -> str:
+        loaded = "read-disabled" if self._read_disabled else "lazy"
+        return f"{type(self).__name__}(overlay={self._overlay!r}, loaded=<{loaded}>)"
+
+    def as_dict(self) -> ty.Dict[str, ty.Any]:
+        """A plain ``dict`` snapshot with the overlay merged over the loaded metadata."""
+        merged: ty.Dict[str, ty.Any] = dict(self._loaded)
+        merged.update(self._overlay)
+        return merged
+
+
 class FileSet(DataType):
     """
     The base class for all format types within the fileformats package. A generic
@@ -83,9 +153,15 @@ class FileSet(DataType):
     ----------
     *fspaths : Path | str | FileSet | Collection[Path | str | FileSet]
         a set of file-system paths pointing to all the resources in the file-set
-    metadata : dict[str, Any]
+    metadata : dict[str, Any] | None
         metadata associated with the file-set, typically lazily loaded via `read_metadata`
-        extra hook but can be provided directly at the time of instantiation
+        extra hook but can be provided directly at the time of instantiation. Providing it
+        here also suppresses reading from the file(s); further entries can still be added
+        via ``fileset.metadata[key] = value``.
+    read_metadata : bool
+        whether the file(s) may be read (lazily, via the `read_metadata` extra) to
+        populate ``metadata``. Pass ``False`` to start from an empty, in-memory-only
+        metadata mapping that is still writable via ``fileset.metadata[key] = value``.
     **load_kwargs : ty.Any
         Any keyword arguments to be passed through to `read_metadata` and `load`
         implementations when loading metadata and data to fill the `metadata` and `contents`
@@ -126,10 +202,18 @@ class FileSet(DataType):
         )
         self._validate_fspaths()
         self._additional_fspaths()
-        if metadata and not isinstance(metadata, dict):
+        if metadata is not None and not isinstance(metadata, dict):
             raise TypeError(
                 f"FileSet metadata value needs to be None or dict, not {metadata} ({self})"
             )
+        # The file(s) are not read for metadata when ``read_metadata=False`` is passed
+        # or when an explicit ``metadata=`` mapping is given; in either case values can
+        # still be added/overridden later via ``fileset.metadata[key] = value`` (see
+        # ``FileSetMetadata``).
+        self._metadata = FileSetMetadata(
+            self,
+            overlay=metadata,
+        )
         self._validate_properties()
 
     def _validate_fspaths(self) -> None:
@@ -144,13 +228,10 @@ class FileSet(DataType):
             )
             present_parents = set()
             for fspath in missing:
-                if fspath:
-                    if fspath.parent.exists():
-                        present_parents.add(fspath.parent)
+                if fspath and fspath.parent.exists():
+                    present_parents.add(fspath.parent)
             for parent in present_parents:
-                msg += (
-                    f"\n\nFiles in the present parent directory '{str(parent)}' are:\n"
-                )
+                msg += f"\n\nFiles in the present parent directory '{parent!s}' are:\n"
                 msg += "\n".join(str(p) for p in parent.iterdir())
             raise FileNotFoundError(msg)
 
@@ -329,11 +410,9 @@ class FileSet(DataType):
         return possible
 
     @mtime_cached_property
-    def metadata(self) -> ty.Mapping[str, ty.Any]:
-        """Lazily load metadata from `read_metadata` extra if implemented, returning an
-        empty metadata array if not"""
-        if self._explicit_metadata is not None:
-            return self._explicit_metadata
+    def _loaded_metadata(self) -> ty.Mapping[str, ty.Any]:
+        """Metadata read from the file(s) via the ``read_metadata`` extra, cached until
+        the file mtimes change. Returns an empty mapping when no reader is available."""
         try:
             metadata = self.read_metadata(**self._load_kwargs)
         except FileFormatsExtrasPkgUninstalledError:
@@ -344,6 +423,22 @@ class FileSet(DataType):
         except FileFormatsExtrasError:
             metadata = {}
         return metadata
+
+    @property
+    def metadata(self) -> "FileSetMetadata":
+        """A dict-like, writable view of the file-set's metadata (see
+        :class:`FileSetMetadata`).
+
+        Reading falls back from an in-memory overlay to the metadata loaded lazily from
+        the file(s) via the ``read_metadata`` extra. Values assigned via
+        ``fileset.metadata[key] = value`` are stored in the overlay: they take
+        precedence over the loaded metadata and persist even when the loaded layer is
+        re-read after the file(s) change."""
+        try:
+            return self._metadata
+        except AttributeError:  # e.g. instance created without calling __init__
+            self._metadata = FileSetMetadata(self)
+            return self._metadata
 
     @mtime_cached_property
     def contents(self) -> ty.Any:
