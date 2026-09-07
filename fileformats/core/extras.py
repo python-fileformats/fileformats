@@ -64,6 +64,14 @@ def extra(method: ExtraMethod) -> "ExtraMethod":
                             '. Was not able to check whether an "extras" package '
                             f"({xtra.pypi}) exists on PyPI or not"
                         )
+                elif xtra.pkg:
+                    msg += (
+                        f'. The "{xtra.pkg}" extras module is installed but doesn\'t '
+                        "register an implementation, which can happen when it is out of "
+                        'date with respect to the installed "fileformats" package, so '
+                        "try upgrading it (e.g. "
+                        f"'pip install --upgrade {xtra.pypi}') and check again"
+                    )
             raise FileFormatsExtrasNotImplementedError(msg) from None
 
     # Store single dispatch method on the decorated function so we can register

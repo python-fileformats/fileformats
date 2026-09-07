@@ -272,7 +272,7 @@ def import_extras_module(klass: ty.Type["fileformats.core.DataType"]) -> ExtrasM
     sub_pkg : str
         the name of the sub-package that was attempted to be loaded
     """
-    from .identification import IANA_MIME_TYPE_REGISTRIES
+    from .identification import BUNDLED_EXTRAS_NAMESPACES
 
     # Check for Mock class
     try:
@@ -293,7 +293,7 @@ def import_extras_module(klass: ty.Type["fileformats.core.DataType"]) -> ExtrasM
         )
         return ExtrasModule(True, None, None)
     extras_pkg = "fileformats.extras." + sub_pkg.replace("-", "_")
-    if sub_pkg in IANA_MIME_TYPE_REGISTRIES + ["testing"]:
+    if sub_pkg in BUNDLED_EXTRAS_NAMESPACES:
         extras_pypi = "fileformats-extras"
     elif klass.vendor:
         extras_pypi = f"fileformats-{klass.vendor}-extras"
@@ -302,7 +302,13 @@ def import_extras_module(klass: ty.Type["fileformats.core.DataType"]) -> ExtrasM
     try:
         importlib.import_module(extras_pkg)
     except ModuleNotFoundError as e:
-        if str(e) != f"No module named '{extras_pkg}'":
+        # The missing module can be a parent of the extras package rather than the
+        # package itself, e.g. importing "fileformats.extras.vendor.<vendor>.<namespace>"
+        # when there is no "fileformats.extras.vendor.<vendor>" sub-package at all.
+        # Errors raised from *within* the extras module are still propagated
+        if not e.name or not (
+            extras_pkg == e.name or extras_pkg.startswith(e.name + ".")
+        ):
             raise
         extras_imported = False
     else:
