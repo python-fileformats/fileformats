@@ -40,15 +40,16 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Update build tools
-      run: python3 -m pip install --upgrade pip
-      if: matrix.os != 'macos-latest'
+        allow-prereleases: true
+    - name: Create venv
+      run: |
+        python -m venv .venv
+        echo "$PWD/.venv/bin" >> $GITHUB_PATH   # Windows: .venv/Scripts
     - name: Install Package
       run: python3 -m pip install -e .[test]
     - name: Install Extras Package
       run: python3 -m pip install -e ./extras[test,application,image,vnd_openxmlformats]
     - name: MyPy
-      if: ${{ matrix.python-version != '3.11' }}
       run: mypy --install-types --non-interactive --no-warn-unused-ignores --python-version "${{ matrix.python-version }}" .
     - name: Pytest
       run: pytest -vvs --cov fileformats --cov-config .coveragerc --cov-report xml .
