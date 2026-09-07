@@ -7,7 +7,7 @@ name = "fileformats-extras"
 description = "Extra methods for accessing and manipulating the underlying data referenced by fileformats classes"
 readme = "README.rst"
 requires-python = ">=3.11"
-dependencies = ["fileformats", "pydra >=1.0a"]
+dependencies = ["fileformats >=0.17.5", "pydra >=1.0a"]
 license = { file = "LICENSE" }
 authors = [{ name = "Thomas G. Close", email = "tom.g.close@gmail.com" }]
 maintainers = [{ name = "Thomas G. Close", email = "tom.g.close@gmail.com" }]
