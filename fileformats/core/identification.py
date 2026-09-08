@@ -38,6 +38,11 @@ ALL_STANDARD_TYPE_REGISTRIES = IANA_MIME_TYPE_REGISTRIES + [
     "testing",
     "vendor.testing",
 ]
+# Namespaces that are shipped within the main "fileformats" package, and therefore have
+# their "extras" implementations bundled together in the "fileformats-extras" package.
+# Note that "generic" is included here even though it isn't a "standard" type registry,
+# since generic types are defined in the main package alongside the standard ones
+BUNDLED_EXTRAS_NAMESPACES = ALL_STANDARD_TYPE_REGISTRIES + ["generic"]
 
 
 def find_matching(
