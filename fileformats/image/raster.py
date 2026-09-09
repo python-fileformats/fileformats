@@ -49,6 +49,10 @@ class Jpeg(WithMagicNumber, RasterImage):
     magic_number = "ffd8ffe0"
 
 
+# Add alias for image/jpg
+Jpg = Jpeg
+
+
 class Tiff(RasterImage):
 
     ext = ".tiff"
