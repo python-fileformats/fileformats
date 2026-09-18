@@ -26,20 +26,24 @@ TAR_COMPRESSION_ANNOT = (
     },
 )
 
+ZIP_COMPRESSION_TYPES = {
+    "ZIP_STORED": zipfile.ZIP_STORED,
+    "ZIP_DEFLATED": zipfile.ZIP_DEFLATED,
+    "ZIP_BZIP2": zipfile.ZIP_BZIP2,
+    "ZIP_LZMA": zipfile.ZIP_LZMA,
+}
+
 ZIP_COMPRESSION_ANNOT = (
     int,
     {
-        "help": (
+        "help_string": (
             "The type of compression applied to zip file, "
+            "', '".join(ZIP_COMPRESSION_TYPES.keys()) + ", "
             "see https://docs.python.org/3/library/zipfile.html#zipfile.ZIP_DEFLATED "
-            "for valid compression types"
+            "for all valid compression types"
         ),
-        "allowed_values": [
-            zipfile.ZIP_STORED,
-            zipfile.ZIP_DEFLATED,
-            zipfile.ZIP_BZIP2,
-            zipfile.ZIP_LZMA,
-        ],
+        "allowed_values": ZIP_COMPRESSION_TYPES,
+
     },
 )
 
@@ -146,11 +150,15 @@ def create_zip(
     in_file: FsObject,
     out_file: ty.Optional[Path] = None,
     base_dir: ty.Optional[Path] = None,
-    compression: int = zipfile.ZIP_DEFLATED,
+    compression: ty.Union[int, str] = zipfile.ZIP_DEFLATED,
     allowZip64: bool = True,
-    compresslevel: ty.Optional[int] = None,
+    compresslevel: ty.Optional[ty.Union[int, str]] = None,
     strict_timestamps: bool = True,
 ) -> Zip:
+
+    compression = parse_zip_compression(compression)
+    if isinstance(compresslevel, str):
+        compresslevel = int(compresslevel)
 
     if len(in_file.fspaths) > 1:
         raise NotImplementedError(
@@ -187,6 +195,20 @@ def create_zip(
             else:
                 zfile.write(relative_path(fspath, base_dir))
     return Zip(out_file)
+
+
+def parse_zip_compression(compression: ty.Union[int, str]) -> int:
+    """Resolve a zipfile compression value from either an int constant
+    (e.g. zipfile.ZIP_STORED) or its name as a string (e.g. "ZIP_STORED")."""
+    if isinstance(compression, str):
+        try:
+            return ZIP_COMPRESSION_TYPES[compression.upper()]
+        except KeyError:
+            raise ValueError(
+                f"Unrecognised zip compression type {compression!r}, "
+                f"must be one of {list(ZIP_COMPRESSION_TYPES)}"
+            ) from None
+    return compression
 
 
 @converter(source_format=Zip, target_format=FsObject)  # type: ignore[untyped-decorator]
