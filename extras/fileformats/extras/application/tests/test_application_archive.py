@@ -39,6 +39,19 @@ def test_zip_roundtrip(archive_input):
     _roundtrip(archive_input, Zip)
 
 
+@pytest.mark.parametrize(
+    "compression", ["ZIP_STORED", "ZIP_DEFLATED", "ZIP_BZIP2", "ZIP_LZMA"]
+)
+def test_zip_roundtrip_string_compression(archive_input, compression):
+    _roundtrip(archive_input, Zip, compression=compression)
+
+
+def test_zip_string_compression_invalid(archive_input):
+    compressed_type = Directory if archive_input.is_dir() else PlainText
+    with pytest.raises(ValueError, match="Invalid compression type"):
+        Zip[compressed_type].convert(archive_input, compression="not-a-real-type")
+
+
 @pytest.mark.xfail(reason="Gzip converter is not implemented yet")
 def test_gzip_roundtrip(archive_input):
     _roundtrip(archive_input, Gzip)
@@ -52,11 +65,11 @@ def test_tar_gz_roundtrip(archive_input):
     _roundtrip(archive_input, TarGzip)
 
 
-def _roundtrip(input, archive_klass):
-    archive_klass.convert(input)  # test generic archive
+def _roundtrip(input, archive_klass, **kwargs):
+    archive_klass.convert(input, **kwargs)  # test generic archive
     # Create classified archive that can be reversed
     compressed_type = Directory if input.is_dir() else PlainText
-    archive = archive_klass[compressed_type].convert(input)
+    archive = archive_klass[compressed_type].convert(input, **kwargs)
     assert isinstance(archive, archive_klass)
     output = compressed_type.convert(archive)
     if isinstance(input, File):
