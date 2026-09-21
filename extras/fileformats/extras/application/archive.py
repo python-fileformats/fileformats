@@ -146,7 +146,7 @@ def create_zip(
     in_file: FsObject,
     out_file: ty.Optional[Path] = None,
     base_dir: ty.Optional[Path] = None,
-    compression: int = zipfile.ZIP_DEFLATED,
+    compression: int | str = zipfile.ZIP_DEFLATED,
     allowZip64: bool = True,
     compresslevel: ty.Optional[int] = None,
     strict_timestamps: bool = True,
@@ -156,6 +156,17 @@ def create_zip(
         raise NotImplementedError(
             "Can only archive file-sets with single paths currently"
         )
+
+    if isinstance(compression, str):
+        try:
+            compression_flag: int = getattr(zipfile, compression.upper())
+        except AttributeError:
+            raise ValueError(
+                f"Invalid compression type, {compression!r}, "
+                "choose from 'ZIP_STORED', 'ZIP_DEFLATED', 'ZIP_BZIP2', 'ZIP_LZMA'"
+            )
+    else:
+        compression_flag = compression
 
     if out_file is None:  # type: ignore[comparison-overlap]
         out_file = Path(Path(in_file).name + ".zip")
@@ -169,7 +180,7 @@ def create_zip(
         zipfile.ZipFile(
             out_file,
             mode="w",
-            compression=compression,
+            compression=compression_flag,
             allowZip64=allowZip64,
             compresslevel=compresslevel,
             strict_timestamps=strict_timestamps,
