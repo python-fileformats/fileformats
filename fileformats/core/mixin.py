@@ -1,3 +1,4 @@
+import io
 import logging
 import re
 import typing as ty
@@ -44,34 +45,52 @@ class WithMagicNumber:
     binary: bool
     magic_number: ty.Union[str, bytes]
 
-    @validated_property
-    def _check_magic_number(self) -> None:
-        if getattr(self, "binary", True) and isinstance(self.magic_number, str):
+    def _validate_magic_number(
+            self,
+            fh: io.IOBase,
+            magic_number: ty.Union[str, bytes],
+            magic_number_offset: int = 0,
+            binary: bool = True
+    ) -> None:
+        if binary and isinstance(magic_number, str):
             try:
-                magic_bytes = bytes.fromhex(self.magic_number)
+                magic_bytes = bytes.fromhex(magic_number)
             except ValueError:
                 raise FormatDefinitionError(
                     f"Magic number of file {type(self)} is not a valid hex string"
                 )
         else:
-            assert isinstance(self.magic_number, bytes)
-            magic_bytes = self.magic_number
-        read_magic_number = self.read_contents(  # type: ignore[attr-defined]
-            len(magic_bytes), offset=self.magic_number_offset
-        )
+            assert isinstance(magic_number, bytes)
+            magic_bytes = magic_number
+
+        if magic_number_offset:
+            fh.seek(magic_number_offset, (io.SEEK_SET if magic_number_offset >= 0 else io.SEEK_END))
+        size = len(magic_bytes)
+        read_magic_number = fh.read(size) if size else fh.read()
+
         if read_magic_number != magic_bytes:
             read_magic: ty.Union[str, bytes]
             ref_magic: ty.Union[str, bytes]
-            if getattr(self, "binary", True) and isinstance(self.magic_number, str):
+            if binary and isinstance(magic_number, str):
                 read_magic = '"' + bytes.hex(read_magic_number) + '"'
-                ref_magic = '"' + self.magic_number + '"'
+                ref_magic = '"' + magic_number + '"'
             else:
                 read_magic = read_magic_number
-                assert isinstance(self.magic_number, bytes)
-                ref_magic = self.magic_number
+                assert isinstance(magic_number, bytes)
+                ref_magic = magic_number
             raise FormatMismatchError(
                 f"Magic number of file {read_magic!r} doesn't match expected "
                 f"{ref_magic!r}"
+            )
+
+    @validated_property
+    def _check_magic_number(self) -> None:
+        with self.open("rb" if getattr(self, "binary", True) else "r") as fh:
+            self._validate_magic_number(
+                fh=fh,
+                magic_number=self.magic_number,
+                binary=getattr(self, "binary", True),
+                magic_number_offset=self.magic_number_offset,
             )
 
 
