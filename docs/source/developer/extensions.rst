@@ -44,7 +44,7 @@ set the ``content_types`` attributes
     from fileformats.text import Markdown, Html
 
 
-    class MyDirFormat(File):
+    class MyDirFormat(Directory):
         content_types = (Markdown, Html)
 
 
@@ -248,7 +248,7 @@ decorator. Take the :class:`fileformats.image.Tiff` class
        magic_number_le = "49492A00"
        magic_number_be = "4D4D002A"
 
-       @property
+       @validated_property
        def endianness(self):
           read_magic = self.read_contents(len(self.magic_number_le) // 2)
           if read_magic == bytes.fromhex(self.magic_number_le):

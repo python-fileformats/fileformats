@@ -32,13 +32,13 @@ class Directory(FsObject):
 
     @mtime_cached_property
     def contents(self) -> ty.List[ty.Union[File, "Directory"]]:
-        contnts: ty.List[ty.Union[File, Directory]] = []
+        contents: ty.List[ty.Union[File, Directory]] = []
         for p in self.fspath.iterdir():
             if p.is_dir():
-                contnts.append(Directory(p))
+                contents.append(Directory(p))
             else:
-                contnts.append(File(p))
-        return contnts
+                contents.append(File(p))
+        return contents
 
     def is_dir(self) -> bool:
         return True
