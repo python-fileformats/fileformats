@@ -56,6 +56,7 @@ Jpg = Jpeg
 class Tiff(RasterImage):
 
     ext = ".tiff"
+    alternate_exts = (".tif",)
     iana_mime = "image/tiff"
 
     magic_number_le = "49492A00"
