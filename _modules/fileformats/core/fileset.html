@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.fileset - FileFormats v0.18.3</title>
+        <title>fileformats.core.fileset - FileFormats v0.19.0</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.18.3</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.19.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.18.3</span>
+  <span class="sidebar-brand-text">FileFormats v0.19.0</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -302,10 +302,11 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">.extras</span><span class="w"> </span><span class="kn">import</span> <span class="n">extra</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.fs_mount_identifier</span><span class="w"> </span><span class="kn">import</span> <span class="n">FsMountIdentifier</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.identification</span><span class="w"> </span><span class="kn">import</span> <span class="n">IANA_MIME_TYPE_REGISTRIES</span><span class="p">,</span> <span class="n">to_mime_format_name</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.loaded</span><span class="w"> </span><span class="kn">import</span> <span class="n">Loaded</span><span class="p">,</span> <span class="n">check_loaded</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.mock</span><span class="w"> </span><span class="kn">import</span> <span class="n">MockMixin</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampleFileGenerator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">CryptoMethod</span><span class="p">,</span> <span class="n">FspathsInputType</span><span class="p">,</span> <span class="n">PathType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">fspaths_converter</span><span class="p">,</span> <span class="n">import_extras_module</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_exc_note</span><span class="p">,</span> <span class="n">fspaths_converter</span><span class="p">,</span> <span class="n">import_extras_module</span>
 
 <span class="k">if</span> <span class="n">ty</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">.converter_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Converter</span>
@@ -400,6 +401,39 @@
         <span class="k">return</span> <span class="n">merged</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_load_result</span><span class="p">(</span>
+    <span class="n">load</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">fileset</span><span class="p">:</span> <span class="s2">"FileSet"</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Check that the data returned by the `load` implementation is of the</span>
+<span class="sd">    `loaded_type` of the fileset"""</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="n">fileset</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">check_loaded</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">fileset</span><span class="p">),</span> <span class="n">data</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">impl</span> <span class="o">=</span> <span class="n">load</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">fileset</span><span class="p">))</span>  <span class="c1"># type: ignore[attr-defined]</span>
+        <span class="n">add_exc_note</span><span class="p">(</span>
+            <span class="n">e</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">"Returned by the </span><span class="si">{</span><span class="n">impl</span><span class="o">.</span><span class="vm">__module__</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">impl</span><span class="o">.</span><span class="vm">__qualname__</span><span class="si">}</span><span class="s2"> implementation of "</span>
+            <span class="sa">f</span><span class="s2">"'load', which is a bug in that implementation (or in the `loaded_type` "</span>
+            <span class="sa">f</span><span class="s2">"of </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">fileset</span><span class="p">)</span><span class="o">.</span><span class="n">type_name</span><span class="si">}</span><span class="s2">), please report it to the package maintainers"</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">raise</span>
+    <span class="k">return</span> <span class="n">data</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_save_data</span><span class="p">(</span>
+    <span class="n">save</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+    <span class="n">fileset</span><span class="p">:</span> <span class="s2">"FileSet"</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Check that `data` is of the `loaded_type` of the fileset before saving it"""</span>
+    <span class="n">check_loaded</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">fileset</span><span class="p">),</span> <span class="n">data</span><span class="p">)</span>
+    <span class="n">save</span><span class="p">(</span><span class="n">fileset</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="FileSet">
 <a class="viewcode-back" href="../../../api.html#fileformats.core.FileSet">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">FileSet</span><span class="p">(</span><span class="n">DataType</span><span class="p">):</span>
@@ -442,6 +476,11 @@
     <span class="c1"># type to None for any base classes that should not correspond to a MIME or MIME-like</span>
     <span class="c1"># type.</span>
     <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">""</span>
+
+    <span class="c1"># The type of the object returned by `load` (and accepted by `save`) for the</span>
+    <span class="c1"># `Loaded[Format]` annotation, either a type or a dotted-path string (e.g.</span>
+    <span class="c1"># "pydicom.FileDataset") for types from optional dependencies</span>
+    <span class="n">loaded_type</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">ClassVar</span><span class="p">[</span><span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span>
 
     <span class="c1"># Member attributes</span>
     <span class="n">fspaths</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">FrozenSet</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span>
@@ -537,8 +576,8 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">type_name</span><span class="si">}</span><span class="s2">('"</span> <span class="o">+</span> <span class="s2">"', '"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fspaths</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"')"</span>
 
-    <span class="nd">@extra</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">:</span>
+    <span class="nd">@extra</span><span class="p">(</span><span class="n">wrapper</span><span class="o">=</span><span class="n">_check_load_result</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Loaded</span><span class="p">[</span><span class="n">Self</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Load the contents of the file into an object of type that make sense for the</span>
 <span class="sd">        datat type</span>
 
@@ -549,27 +588,39 @@
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        Any</span>
-<span class="sd">            the data loaded from the file in an type to the format</span>
+<span class="sd">        Loaded[Self]</span>
+<span class="sd">            the data loaded from the file, of type `loaded_type`</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            if the implementation returns data that isn't of the format's `loaded_type`</span>
 <span class="sd">        """</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
-    <span class="nd">@extra</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Load new contents from a format-specific object</span>
+    <span class="nd">@extra</span><span class="p">(</span><span class="n">wrapper</span><span class="o">=</span><span class="n">_check_save_data</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Loaded</span><span class="p">[</span><span class="n">Self</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Save new contents from a format-specific object</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        data: Any</span>
-<span class="sd">            the data to be saved to the file in a type that matches the one loaded by</span>
-<span class="sd">            the `load` method</span>
+<span class="sd">        data: Loaded[Self]</span>
+<span class="sd">            the data to be saved to the file, of type `loaded_type` (i.e. matching the</span>
+<span class="sd">            one returned by the `load` method)</span>
 <span class="sd">        **kwargs : Any</span>
 <span class="sd">            any format-specific keyword arguments to pass to the saver</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            if `data` isn't an instance of the format's `loaded_type`</span>
 <span class="sd">        """</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">new</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">fspath</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">data</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">new</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">fspath</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">data</span><span class="p">:</span> <span class="n">Loaded</span><span class="p">[</span><span class="n">Self</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Create a new file-set object with the given data saved to the file</span>
 
 <span class="sd">        Parameters</span>
@@ -577,9 +628,9 @@
 <span class="sd">        fspath: str | Path</span>
 <span class="sd">            the file-system path to save the data to. Additional paths should be</span>
 <span class="sd">            able to be inferred from this path</span>
-<span class="sd">        data: Any</span>
-<span class="sd">            the data to be saved to the file in a type that matches the one loaded by</span>
-<span class="sd">            the `load` method</span>
+<span class="sd">        data: Loaded[Self]</span>
+<span class="sd">            the data to be saved to the file, of type `loaded_type` (i.e. matching the</span>
+<span class="sd">            one returned by the `load` method)</span>
 <span class="sd">        **kwargs : Any</span>
 <span class="sd">            any format-specific keyword arguments to pass to the saver</span>
 
@@ -2470,7 +2521,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=7d1c0051"></script>
+</div><script src="../../../_static/documentation_options.js?v=7b661131"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>

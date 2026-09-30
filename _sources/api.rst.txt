@@ -36,6 +36,31 @@ and properties of these classes are described here.
     :members: mime_like, from_mime, to_primitive, from_primitive
 
 
+Loaded-data annotations
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Annotations for data loaded from a file format (see :ref:`Loaded data`)
+
+.. autoclass:: fileformats.core.Loaded
+
+.. autoclass:: fileformats.core.LoadedMarker
+    :members: from_hint, accepts
+
+.. autofunction:: fileformats.core.check_loaded
+
+
+Extra hooks
+~~~~~~~~~~~
+
+Decorators for defining and implementing extra hooks (see :ref:`Extras`)
+
+.. autofunction:: fileformats.core.extra
+
+.. autofunction:: fileformats.core.extra_implementation
+
+.. autofunction:: fileformats.core.find_extra_implementation
+
+
 Generic Classes
 ~~~~~~~~~~~~~~~
 

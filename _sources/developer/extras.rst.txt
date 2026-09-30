@@ -82,6 +82,109 @@ determines which of the overloaded methods is called
         ...
 
 
+Wrapping implementations
+------------------------
+
+Behaviour that should apply to every implementation of a hook, such as validating
+arguments or return values, can be added with the ``wrapper`` argument of ``@extra``.
+The wrapper is called with the registered implementation followed by the arguments
+the hook was called with, and is responsible for calling the implementation and
+returning its result
+
+.. code-block:: python
+
+    def check_index(impl, my_format, index, *args, **kwargs):
+        if index < 0:
+            raise ValueError(f"index must be non-negative, not {index}")
+        return impl(my_format, index, *args, **kwargs)
+
+
+    class MyFormat(File):
+
+        ext = ".my"
+
+        @extra(wrapper=check_index)
+        def my_extra_method(self, index: int, scale: float, save_path: Path) -> Self:
+            ...
+
+The body of the hook method is still only called when there is no implementation
+registered for the type, and should just raise ``NotImplementedError``. Note that the
+wrapper runs before it is known whether an implementation exists, so any checks it
+makes will be performed before a missing implementation is reported.
+
+``FileSet.load`` and ``FileSet.save`` use wrappers to check that the data returned by
+the ``load`` implementation, and the data passed to ``save``, are of the format's
+``loaded_type`` (see below).
+
+
+Defining loaded types
+---------------------
+
+The type of the object returned by ``load`` (and accepted by ``save``) for a format is
+declared by its ``loaded_type`` class attribute, which defaults to ``Any``. Since the
+format classes shouldn't depend on the packages used to load them, types from optional
+dependencies are declared as dotted-path strings, which are only imported (via
+``pkgutil.resolve_name``) when they are needed and the package is installed
+
+.. code-block:: python
+
+    class MyFormat(File):
+
+        ext = ".my"
+        loaded_type = "some_external_package.MyData"
+
+The ``load`` and ``save`` hooks are annotated with ``Loaded[Self]``, which is resolved
+to the ``loaded_type`` of the format an implementation is registered for when its
+signature is checked. Implementations therefore need to be annotated with either the
+same type (or dotted-path string) or ``Loaded[<format>]``
+
+.. code-block:: python
+
+    @extra_implementation(FileSet.load)
+    def load_my_format(my_format: MyFormat, **kwargs: Any) -> "some_external_package.MyData":
+        return some_external_package.load(my_format.fspath)
+
+
+    @extra_implementation(FileSet.save)
+    def save_my_format(
+        my_format: MyFormat, data: "some_external_package.MyData", **kwargs: Any
+    ) -> None:
+        some_external_package.save(data, my_format.fspath)
+
+Formats that leave ``loaded_type`` as ``Any`` accept any annotation. If a dotted-path
+string can't be imported because the optional package isn't installed, the check is
+skipped.
+
+The ``loaded_type`` is also checked at runtime, and a ``TypeError`` is raised if a
+``load`` implementation returns an object that isn't an instance of it (the check is
+shallow, e.g. only that the object is a ``dict``, not the types of its keys and values).
+Make sure the ``loaded_type`` covers everything the format can legitimately load to,
+e.g. JSON and YAML documents can be bare scalars as well as mappings and lists.
+
+Hooks of your own can use ``Loaded[Self]`` in the same way to refer to the loaded type
+of the format they are implemented for.
+
+Where different implementations of a hook take data loaded from different formats
+(e.g. a deidentification recipe that is specific to the format being deidentified),
+annotate the hook argument with ``Loaded[FileSet]`` (optionally ``| None``), which
+accepts ``Loaded[<format>]`` in the implementations. Callers can then find the format
+the implementation for a given type expects with ``find_extra_implementation``
+
+.. code-block:: python
+
+    impl = find_extra_implementation(MedicalImagingData.deidentify, type(image))
+    hint = typing.get_type_hints(impl, include_extras=True)["recipe"]
+    marker = LoadedMarker.from_hint(hint)
+    if marker is None:  # the implementation doesn't take a recipe
+        image.deidentify(out_dir)
+    else:
+        image.deidentify(out_dir, recipe=marker.format(recipe_path).load())
+
+Implementations that ignore an optional argument of the hook should annotate it with
+``None``, e.g. ``recipe: None = None``, which is accepted for any argument whose type in
+the hook includes ``None``.
+
+
 Registering converters
 ----------------------
 

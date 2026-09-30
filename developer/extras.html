@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Extras - FileFormats v0.18.3</title>
+        <title>Extras - FileFormats v0.19.0</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -168,7 +168,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">FileFormats v0.18.3</div></a>
+      <a href="../index.html"><div class="brand">FileFormats v0.19.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -192,7 +192,7 @@
     <img class="sidebar-logo" src="../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.18.3</span>
+  <span class="sidebar-brand-text">FileFormats v0.19.0</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -335,6 +335,93 @@ determines which of the overloaded methods is called</p>
     <span class="o">...</span>
 </pre></div>
 </div>
+</section>
+<section id="wrapping-implementations">
+<h2>Wrapping implementations<a class="headerlink" href="#wrapping-implementations" title="Link to this heading">¶</a></h2>
+<p>Behaviour that should apply to every implementation of a hook, such as validating
+arguments or return values, can be added with the <code class="docutils literal notranslate"><span class="pre">wrapper</span></code> argument of <code class="docutils literal notranslate"><span class="pre">&#64;extra</span></code>.
+The wrapper is called with the registered implementation followed by the arguments
+the hook was called with, and is responsible for calling the implementation and
+returning its result</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">check_index</span><span class="p">(</span><span class="n">impl</span><span class="p">,</span> <span class="n">my_format</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"index must be non-negative, not </span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">impl</span><span class="p">(</span><span class="n">my_format</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MyFormat</span><span class="p">(</span><span class="n">File</span><span class="p">):</span>
+
+    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".my"</span>
+
+    <span class="nd">@extra</span><span class="p">(</span><span class="n">wrapper</span><span class="o">=</span><span class="n">check_index</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">my_extra_method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">scale</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">save_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<p>The body of the hook method is still only called when there is no implementation
+registered for the type, and should just raise <code class="docutils literal notranslate"><span class="pre">NotImplementedError</span></code>. Note that the
+wrapper runs before it is known whether an implementation exists, so any checks it
+makes will be performed before a missing implementation is reported.</p>
+<p><code class="docutils literal notranslate"><span class="pre">FileSet.load</span></code> and <code class="docutils literal notranslate"><span class="pre">FileSet.save</span></code> use wrappers to check that the data returned by
+the <code class="docutils literal notranslate"><span class="pre">load</span></code> implementation, and the data passed to <code class="docutils literal notranslate"><span class="pre">save</span></code>, are of the format's
+<code class="docutils literal notranslate"><span class="pre">loaded_type</span></code> (see below).</p>
+</section>
+<section id="defining-loaded-types">
+<h2>Defining loaded types<a class="headerlink" href="#defining-loaded-types" title="Link to this heading">¶</a></h2>
+<p>The type of the object returned by <code class="docutils literal notranslate"><span class="pre">load</span></code> (and accepted by <code class="docutils literal notranslate"><span class="pre">save</span></code>) for a format is
+declared by its <code class="docutils literal notranslate"><span class="pre">loaded_type</span></code> class attribute, which defaults to <code class="docutils literal notranslate"><span class="pre">Any</span></code>. Since the
+format classes shouldn't depend on the packages used to load them, types from optional
+dependencies are declared as dotted-path strings, which are only imported (via
+<code class="docutils literal notranslate"><span class="pre">pkgutil.resolve_name</span></code>) when they are needed and the package is installed</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MyFormat</span><span class="p">(</span><span class="n">File</span><span class="p">):</span>
+
+    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".my"</span>
+    <span class="n">loaded_type</span> <span class="o">=</span> <span class="s2">"some_external_package.MyData"</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">load</span></code> and <code class="docutils literal notranslate"><span class="pre">save</span></code> hooks are annotated with <code class="docutils literal notranslate"><span class="pre">Loaded[Self]</span></code>, which is resolved
+to the <code class="docutils literal notranslate"><span class="pre">loaded_type</span></code> of the format an implementation is registered for when its
+signature is checked. Implementations therefore need to be annotated with either the
+same type (or dotted-path string) or <code class="docutils literal notranslate"><span class="pre">Loaded[&lt;format&gt;]</span></code></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@extra_implementation</span><span class="p">(</span><span class="n">FileSet</span><span class="o">.</span><span class="n">load</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_my_format</span><span class="p">(</span><span class="n">my_format</span><span class="p">:</span> <span class="n">MyFormat</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"some_external_package.MyData"</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">some_external_package</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">my_format</span><span class="o">.</span><span class="n">fspath</span><span class="p">)</span>
+
+
+<span class="nd">@extra_implementation</span><span class="p">(</span><span class="n">FileSet</span><span class="o">.</span><span class="n">save</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">save_my_format</span><span class="p">(</span>
+    <span class="n">my_format</span><span class="p">:</span> <span class="n">MyFormat</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="s2">"some_external_package.MyData"</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">some_external_package</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">my_format</span><span class="o">.</span><span class="n">fspath</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Formats that leave <code class="docutils literal notranslate"><span class="pre">loaded_type</span></code> as <code class="docutils literal notranslate"><span class="pre">Any</span></code> accept any annotation. If a dotted-path
+string can't be imported because the optional package isn't installed, the check is
+skipped.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">loaded_type</span></code> is also checked at runtime, and a <code class="docutils literal notranslate"><span class="pre">TypeError</span></code> is raised if a
+<code class="docutils literal notranslate"><span class="pre">load</span></code> implementation returns an object that isn't an instance of it (the check is
+shallow, e.g. only that the object is a <code class="docutils literal notranslate"><span class="pre">dict</span></code>, not the types of its keys and values).
+Make sure the <code class="docutils literal notranslate"><span class="pre">loaded_type</span></code> covers everything the format can legitimately load to,
+e.g. JSON and YAML documents can be bare scalars as well as mappings and lists.</p>
+<p>Hooks of your own can use <code class="docutils literal notranslate"><span class="pre">Loaded[Self]</span></code> in the same way to refer to the loaded type
+of the format they are implemented for.</p>
+<p>Where different implementations of a hook take data loaded from different formats
+(e.g. a deidentification recipe that is specific to the format being deidentified),
+annotate the hook argument with <code class="docutils literal notranslate"><span class="pre">Loaded[FileSet]</span></code> (optionally <code class="docutils literal notranslate"><span class="pre">|</span> <span class="pre">None</span></code>), which
+accepts <code class="docutils literal notranslate"><span class="pre">Loaded[&lt;format&gt;]</span></code> in the implementations. Callers can then find the format
+the implementation for a given type expects with <code class="docutils literal notranslate"><span class="pre">find_extra_implementation</span></code></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">impl</span> <span class="o">=</span> <span class="n">find_extra_implementation</span><span class="p">(</span><span class="n">MedicalImagingData</span><span class="o">.</span><span class="n">deidentify</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">image</span><span class="p">))</span>
+<span class="n">hint</span> <span class="o">=</span> <span class="n">typing</span><span class="o">.</span><span class="n">get_type_hints</span><span class="p">(</span><span class="n">impl</span><span class="p">,</span> <span class="n">include_extras</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="s2">"recipe"</span><span class="p">]</span>
+<span class="n">marker</span> <span class="o">=</span> <span class="n">LoadedMarker</span><span class="o">.</span><span class="n">from_hint</span><span class="p">(</span><span class="n">hint</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">marker</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># the implementation doesn't take a recipe</span>
+    <span class="n">image</span><span class="o">.</span><span class="n">deidentify</span><span class="p">(</span><span class="n">out_dir</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">image</span><span class="o">.</span><span class="n">deidentify</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="n">recipe</span><span class="o">=</span><span class="n">marker</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">recipe_path</span><span class="p">)</span><span class="o">.</span><span class="n">load</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>Implementations that ignore an optional argument of the hook should annotate it with
+<code class="docutils literal notranslate"><span class="pre">None</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">recipe:</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></code>, which is accepted for any argument whose type in
+the hook includes <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
 </section>
 <section id="registering-converters">
 <h2>Registering converters<a class="headerlink" href="#registering-converters" title="Link to this heading">¶</a></h2>
@@ -520,6 +607,8 @@ FormatB.</p>
             <ul>
 <li><a class="reference internal" href="#">Extras</a><ul>
 <li><a class="reference internal" href="#hooks-and-implementations">Hooks and implementations</a></li>
+<li><a class="reference internal" href="#wrapping-implementations">Wrapping implementations</a></li>
+<li><a class="reference internal" href="#defining-loaded-types">Defining loaded types</a></li>
 <li><a class="reference internal" href="#registering-converters">Registering converters</a></li>
 </ul>
 </li>
@@ -532,7 +621,7 @@ FormatB.</p>
       
     </aside>
   </div>
-</div><script src="../_static/documentation_options.js?v=7d1c0051"></script>
+</div><script src="../_static/documentation_options.js?v=7b661131"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>

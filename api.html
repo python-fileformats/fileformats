@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>API - FileFormats v0.18.3</title>
+        <title>API - FileFormats v0.19.0</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -168,7 +168,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">FileFormats v0.18.3</div></a>
+      <a href="index.html"><div class="brand">FileFormats v0.19.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -192,7 +192,7 @@
     <img class="sidebar-logo" src="_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.18.3</span>
+  <span class="sidebar-brand-text">FileFormats v0.19.0</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -934,6 +934,102 @@ an identifier for a non-MIME class in the MIME style), e.g.</p>
 </dd></dl>
 
 </section>
+<section id="loaded-data-annotations">
+<h2>Loaded-data annotations<a class="headerlink" href="#loaded-data-annotations" title="Link to this heading">¶</a></h2>
+<p>Annotations for data loaded from a file format (see <a class="reference internal" href="read_write.html#loaded-data"><span class="std std-ref">Loaded data</span></a>)</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="fileformats.core.Loaded">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">fileformats.core.</span></span><span class="sig-name descname"><span class="pre">Loaded</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fileformats/core/loaded.html#Loaded"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fileformats.core.Loaded" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p><code class="docutils literal notranslate"><span class="pre">Loaded[Format]</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">Annotated[&lt;loaded</span> <span class="pre">type&gt;,</span> <span class="pre">LoadedMarker(Format)]</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="fileformats.core.LoadedMarker">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">fileformats.core.</span></span><span class="sig-name descname"><span class="pre">LoadedMarker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.14)"><span class="pre">Type</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#fileformats.core.FileSet" title="fileformats.core.FileSet"><span class="pre">FileSet</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fileformats/core/loaded.html#LoadedMarker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fileformats.core.LoadedMarker" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Metadata attached to an <code class="docutils literal notranslate"><span class="pre">Annotated</span></code> hint recording the source format</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="fileformats.core.LoadedMarker.accepts">
+<span class="sig-name descname"><span class="pre">accepts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.14)"><span class="pre">Type</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#fileformats.core.FileSet" title="fileformats.core.FileSet"><span class="pre">FileSet</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/fileformats/core/loaded.html#LoadedMarker.accepts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fileformats.core.LoadedMarker.accepts" title="Link to this definition">¶</a></dt>
+<dd><p>Whether data loaded from <cite>fmt</cite> satisfies this marker (covariant)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="fileformats.core.LoadedMarker.from_hint">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_hint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#fileformats.core.LoadedMarker" title="fileformats.core.loaded.LoadedMarker"><span class="pre">LoadedMarker</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/fileformats/core/loaded.html#LoadedMarker.from_hint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fileformats.core.LoadedMarker.from_hint" title="Link to this definition">¶</a></dt>
+<dd><p>Return the marker of a <code class="docutils literal notranslate"><span class="pre">Loaded[X]</span></code> or <code class="docutils literal notranslate"><span class="pre">Loaded[X]</span> <span class="pre">|</span> <span class="pre">None</span></code> hint, or None
+for any other hint.</p>
+<p>Hints must be obtained with <code class="docutils literal notranslate"><span class="pre">get_type_hints(...,</span> <span class="pre">include_extras=True)</span></code> or
+<code class="docutils literal notranslate"><span class="pre">inspect.signature(...,</span> <span class="pre">eval_str=True)</span></code>, otherwise <code class="docutils literal notranslate"><span class="pre">Annotated</span></code> is stripped.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="fileformats.core.check_loaded">
+<span class="sig-prename descclassname"><span class="pre">fileformats.core.</span></span><span class="sig-name descname"><span class="pre">check_loaded</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.14)"><span class="pre">Type</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#fileformats.core.FileSet" title="fileformats.core.FileSet"><span class="pre">FileSet</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/fileformats/core/loaded.html#check_loaded"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fileformats.core.check_loaded" title="Link to this definition">¶</a></dt>
+<dd><p>Shallow check that <cite>data</cite> is the kind of object <cite>fmt.load()</cite> produces,
+e.g. at the top of <cite>save()</cite> or when pydra coerces a <cite>Loaded[X]</cite> input.
+Skipped when the loaded type is unknown or not runtime-checkable.</p>
+</dd></dl>
+
+</section>
+<section id="extra-hooks">
+<h2>Extra hooks<a class="headerlink" href="#extra-hooks" title="Link to this heading">¶</a></h2>
+<p>Decorators for defining and implementing extra hooks (see <a class="reference internal" href="developer/extras.html#extras"><span class="std std-ref">Extras</span></a>)</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="fileformats.core.extra">
+<span class="sig-prename descclassname"><span class="pre">fileformats.core.</span></span><span class="sig-name descname"><span class="pre">extra</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ExtraMethod</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ExtraMethod</span></span></span><a class="reference internal" href="_modules/fileformats/core/extras.html#extra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fileformats.core.extra" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">fileformats.core.</span></span><span class="sig-name descname"><span class="pre">extra</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrapper</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">ExtraMethod</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ExtraMethod</span><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd><p>A decorator which uses singledispatch to facilitate the registering of
+&quot;extra&quot; functionality in external packages (e.g. &quot;fileformats-extras&quot;)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>method</strong> (<em>Callable</em>) -- the method to define as an extra hook. Its signature is what implementations
+are checked against and its body is only called if there is no implementation
+registered for the type (so it should just raise NotImplementedError)</p></li>
+<li><p><strong>wrapper</strong> (<em>Callable</em><em>, </em><em>optional</em>) -- a function wrapped around every call to the registered implementations, e.g.
+to validate arguments or return values. It is called as
+<code class="docutils literal notranslate"><span class="pre">wrapper(implementation,</span> <span class="pre">obj,</span> <span class="pre">*args,</span> <span class="pre">**kwargs)</span></code> and is responsible for
+calling <code class="docutils literal notranslate"><span class="pre">implementation(obj,</span> <span class="pre">*args,</span> <span class="pre">**kwargs)</span></code> and returning its result</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="fileformats.core.extra_implementation">
+<span class="sig-prename descclassname"><span class="pre">fileformats.core.</span></span><span class="sig-name descname"><span class="pre">extra_implementation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ExtraMethod</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">ExtraImplementation</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ExtraImplementation</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/fileformats/core/extras.html#extra_implementation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fileformats.core.extra_implementation" title="Link to this definition">¶</a></dt>
+<dd><p>A decorator which uses singledispatch to facilitate the registering of
+&quot;extra&quot; functionality in external packages (e.g. &quot;fileformats-extras&quot;)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="fileformats.core.find_extra_implementation">
+<span class="sig-prename descclassname"><span class="pre">fileformats.core.</span></span><span class="sig-name descname"><span class="pre">find_extra_implementation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.14)"><span class="pre">Type</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#fileformats.core.DataType" title="fileformats.core.datatype.DataType"><span class="pre">DataType</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/fileformats/core/extras.html#find_extra_implementation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fileformats.core.find_extra_implementation" title="Link to this definition">¶</a></dt>
+<dd><p>Find the implementation of an extra method that would be called for the given
+type, importing any extras modules that could contain it first</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>method</strong> (<em>Callable</em>) -- the extra method, e.g. <code class="docutils literal notranslate"><span class="pre">FileSet.load</span></code></p></li>
+<li><p><strong>datatype</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#type" title="(in Python v3.14)"><em>type</em></a><em>[</em><a class="reference internal" href="#fileformats.core.DataType" title="fileformats.core.DataType"><em>DataType</em></a><em>]</em>) -- the type to find the implementation for</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the registered implementation (which may be registered for a base class of
+<cite>datatype</cite>), or None if there isn't one</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Callable or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
 <section id="generic-classes">
 <h2>Generic Classes<a class="headerlink" href="#generic-classes" title="Link to this heading">¶</a></h2>
 <p>Generic classes representing files and directories can be used as base classes for
@@ -1366,6 +1462,22 @@ which is under the <cite>field</cite> namespace, e.g. <cite>field/integer</cite>
 </li>
 </ul>
 </li>
+<li><a class="reference internal" href="#loaded-data-annotations">Loaded-data annotations</a><ul>
+<li><a class="reference internal" href="#fileformats.core.Loaded"><code class="docutils literal notranslate"><span class="pre">Loaded</span></code></a></li>
+<li><a class="reference internal" href="#fileformats.core.LoadedMarker"><code class="docutils literal notranslate"><span class="pre">LoadedMarker</span></code></a><ul>
+<li><a class="reference internal" href="#fileformats.core.LoadedMarker.accepts"><code class="docutils literal notranslate"><span class="pre">LoadedMarker.accepts()</span></code></a></li>
+<li><a class="reference internal" href="#fileformats.core.LoadedMarker.from_hint"><code class="docutils literal notranslate"><span class="pre">LoadedMarker.from_hint()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#fileformats.core.check_loaded"><code class="docutils literal notranslate"><span class="pre">check_loaded()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#extra-hooks">Extra hooks</a><ul>
+<li><a class="reference internal" href="#fileformats.core.extra"><code class="docutils literal notranslate"><span class="pre">extra()</span></code></a></li>
+<li><a class="reference internal" href="#fileformats.core.extra_implementation"><code class="docutils literal notranslate"><span class="pre">extra_implementation()</span></code></a></li>
+<li><a class="reference internal" href="#fileformats.core.find_extra_implementation"><code class="docutils literal notranslate"><span class="pre">find_extra_implementation()</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#generic-classes">Generic Classes</a><ul>
 <li><a class="reference internal" href="#fileformats.generic.FsObject"><code class="docutils literal notranslate"><span class="pre">FsObject</span></code></a><ul>
 <li><a class="reference internal" href="#fileformats.generic.FsObject.__fspath__"><code class="docutils literal notranslate"><span class="pre">FsObject.__fspath__()</span></code></a></li>
@@ -1449,7 +1561,7 @@ which is under the <cite>field</cite> namespace, e.g. <cite>field/integer</cite>
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=7d1c0051"></script>
+</div><script src="_static/documentation_options.js?v=7b661131"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
