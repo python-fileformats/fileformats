@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.fileset - FileFormats v0.19.0</title>
+        <title>fileformats.core.fileset - FileFormats v0.19.1</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.19.0</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.19.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.19.0</span>
+  <span class="sidebar-brand-text">FileFormats v0.19.1</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -301,7 +301,7 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.extras</span><span class="w"> </span><span class="kn">import</span> <span class="n">extra</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.fs_mount_identifier</span><span class="w"> </span><span class="kn">import</span> <span class="n">FsMountIdentifier</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.identification</span><span class="w"> </span><span class="kn">import</span> <span class="n">IANA_MIME_TYPE_REGISTRIES</span><span class="p">,</span> <span class="n">to_mime_format_name</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.identification</span><span class="w"> </span><span class="kn">import</span> <span class="n">IANA_MIME_TYPE_REGISTRIES</span><span class="p">,</span> <span class="n">formats_by_mime_format_name</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.loaded</span><span class="w"> </span><span class="kn">import</span> <span class="n">Loaded</span><span class="p">,</span> <span class="n">check_loaded</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.mock</span><span class="w"> </span><span class="kn">import</span> <span class="n">MockMixin</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">SampleFileGenerator</span>
@@ -696,7 +696,7 @@
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mime_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">mime_type</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">mime_type</span>
-        <span class="n">format_name</span> <span class="o">=</span> <span class="n">to_mime_format_name</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>  <span class="c1"># type: ignore[attr-defined]</span>
+        <span class="n">format_name</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_mime_format_name</span><span class="p">()</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">"application/x-</span><span class="si">{</span><span class="n">format_name</span><span class="si">}</span><span class="s2">"</span>
 
     <span class="nd">@classproperty</span>  <span class="c1"># type: ignore[arg-type]</span>
@@ -1245,8 +1245,8 @@
                 <span class="n">k</span><span class="p">:</span> <span class="nb">set</span><span class="p">(</span><span class="n">v</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">g</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
                     <span class="nb">sorted</span><span class="p">(</span>
-                        <span class="p">(</span>
-                            <span class="p">(</span><span class="n">to_mime_format_name</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="vm">__name__</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span>
+                        <span class="n">formats_by_mime_format_name</span><span class="p">(</span>
+                            <span class="n">f</span>
                             <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">FileSet</span><span class="o">.</span><span class="n">all_formats</span>
                             <span class="k">if</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"iana_mime"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
                         <span class="p">),</span>
@@ -1702,9 +1702,24 @@
             <span class="k">if</span> <span class="n">required_only</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_paths</span><span class="p">()</span>
             <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fspaths</span>
         <span class="p">)</span>
-        <span class="n">nested</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nested_filesets</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">fileset</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="p">]</span> <span class="o">+</span> <span class="n">nested</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">is_subpath</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">others</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">path</span> <span class="o">!=</span> <span class="n">o</span> <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">is_relative_to</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">others</span><span class="p">)</span>
+
+        <span class="c1"># Paths that are to be included in the decomposition</span>
+        <span class="n">to_include</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">implicit</span><span class="p">)</span>
+        <span class="c1"># Maps paths decomposed by a typed file-set to the file-set and its decomposition</span>
+        <span class="n">decomposed_by</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">FileSet</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">fileset</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">nested_filesets</span><span class="p">():</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fileset</span><span class="p">,</span> <span class="n">File</span><span class="p">):</span>
+                <span class="c1"># Skip files that are nested within other paths (e.g. directories) of</span>
+                <span class="c1"># the file-set, as they will be handled along with their parent</span>
+                <span class="k">if</span> <span class="n">is_subpath</span><span class="p">(</span><span class="n">fileset</span><span class="o">.</span><span class="n">fspath</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fspaths</span><span class="p">):</span>
+                    <span class="n">implicit</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">fileset</span><span class="o">.</span><span class="n">fspath</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="c1"># Skip files that aren't to be included (e.g. not required)</span>
+                <span class="k">if</span> <span class="n">fileset</span><span class="o">.</span><span class="n">fspath</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">to_include</span><span class="p">:</span>
+                    <span class="k">continue</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">decomposed</span> <span class="o">=</span> <span class="p">(</span>
                         <span class="n">fileset</span><span class="o">.</span><span class="n">fspath</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
@@ -1712,22 +1727,17 @@
                         <span class="n">fileset</span><span class="o">.</span><span class="n">actual_ext</span><span class="p">,</span>
                     <span class="p">)</span>
                 <span class="k">except</span> <span class="n">UnconstrainedExtensionException</span><span class="p">:</span>
-                    <span class="n">implicit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fileset</span><span class="o">.</span><span class="n">fspath</span><span class="p">)</span>
+                    <span class="c1"># Leave in implicit to be decomposed with the default mode, unless</span>
+                    <span class="c1"># it has already been decomposed by a typed file-set</span>
                     <span class="k">continue</span>
                 <span class="k">if</span> <span class="n">fileset</span><span class="o">.</span><span class="n">fspath</span> <span class="ow">in</span> <span class="n">implicit</span><span class="p">:</span>
                     <span class="n">decomposed_fspaths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decomposed</span><span class="p">)</span>
                     <span class="n">implicit</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">fileset</span><span class="o">.</span><span class="n">fspath</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">decomposed</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">decomposed_fspaths</span><span class="p">:</span>
-                    <span class="n">previous_fileset</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
-                        <span class="n">f</span>
-                        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">nested</span>
-                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">File</span><span class="p">)</span> <span class="ow">and</span> <span class="n">f</span><span class="o">.</span><span class="n">fspath</span> <span class="o">==</span> <span class="n">fileset</span><span class="o">.</span><span class="n">fspath</span>
-                    <span class="p">)</span>
-                    <span class="n">previous</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="n">previous_fileset</span><span class="o">.</span><span class="n">fspath</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
-                        <span class="n">previous_fileset</span><span class="o">.</span><span class="n">stem</span><span class="p">,</span>
-                        <span class="n">previous_fileset</span><span class="o">.</span><span class="n">actual_ext</span><span class="p">,</span>
-                    <span class="p">)</span>
+                    <span class="n">decomposed_by</span><span class="p">[</span><span class="n">fileset</span><span class="o">.</span><span class="n">fspath</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">fileset</span><span class="p">,</span> <span class="n">decomposed</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">previous_fileset</span><span class="p">,</span> <span class="n">previous</span> <span class="o">=</span> <span class="n">decomposed_by</span><span class="p">[</span><span class="n">fileset</span><span class="o">.</span><span class="n">fspath</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">previous</span> <span class="o">==</span> <span class="n">decomposed</span><span class="p">:</span>
+                        <span class="k">continue</span>
                     <span class="n">warn</span><span class="p">(</span>
                         <span class="sa">f</span><span class="s2">"The '</span><span class="si">{</span><span class="n">fileset</span><span class="o">.</span><span class="n">fspath</span><span class="si">}</span><span class="s2">' path within </span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2"> into has been decomposed as "</span>
                         <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">previous</span><span class="si">}</span><span class="s2"> as it was interpreted as a </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">previous_fileset</span><span class="p">)</span><span class="si">}</span><span class="s2"> "</span>
@@ -1738,7 +1748,14 @@
             <span class="n">decomposed_fspaths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">decompose_fspath</span><span class="p">(</span><span class="n">fspath</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">decomposition_mode</span><span class="p">)</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">decomposed_fspaths</span></div>
+        <span class="c1"># Drop any paths that are nested within other paths in the set, as they will</span>
+        <span class="c1"># be copied/moved along with their parent</span>
+        <span class="n">full_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="o">/</span> <span class="p">(</span><span class="n">s</span> <span class="o">+</span> <span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">decomposed_fspaths</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">d</span>
+            <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">fp</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">decomposed_fspaths</span><span class="p">,</span> <span class="n">full_paths</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_subpath</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">full_paths</span><span class="p">)</span>
+        <span class="p">]</span></div>
 
 
     <span class="nd">@classmethod</span>
@@ -2521,7 +2538,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=7b661131"></script>
+</div><script src="../../../_static/documentation_options.js?v=e42485ab"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>

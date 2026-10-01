@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>fileformats.model - FileFormats v0.19.0</title>
+        <title>fileformats.model - FileFormats v0.19.1</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">FileFormats v0.19.0</div></a>
+      <a href="../../index.html"><div class="brand">FileFormats v0.19.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.19.0</span>
+  <span class="sidebar-brand-text">FileFormats v0.19.1</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -297,10 +297,13 @@
 
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">Gltf___Json</span><span class="p">(</span><span class="n">Model</span><span class="p">,</span> <span class="n">Json</span><span class="p">):</span>
+<div class="viewcode-block" id="Gltf__Json">
+<a class="viewcode-back" href="../../reference/model.html#fileformats.model.Gltf__Json">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Gltf__Json</span><span class="p">(</span><span class="n">Model</span><span class="p">,</span> <span class="n">Json</span><span class="p">):</span>
 
     <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">"model/gltf+json"</span>
-    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".gltf"</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".gltf"</span></div>
+
 
 
 <div class="viewcode-block" id="Jt">
@@ -359,22 +362,31 @@
 
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">Step___Xml</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+<div class="viewcode-block" id="Step__Xml">
+<a class="viewcode-back" href="../../reference/model.html#fileformats.model.Step__Xml">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Step__Xml</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
 
     <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">"model/step+xml"</span>
-    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".stpx"</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".stpx"</span></div>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">Step___Zip</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+
+<div class="viewcode-block" id="Step__Zip">
+<a class="viewcode-back" href="../../reference/model.html#fileformats.model.Step__Zip">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Step__Zip</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
 
     <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">"model/step+zip"</span>
-    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".stpz"</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".stpz"</span></div>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">StepXml___Zip</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+
+<div class="viewcode-block" id="StepXml__Zip">
+<a class="viewcode-back" href="../../reference/model.html#fileformats.model.StepXml__Zip">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StepXml__Zip</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
 
     <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">"model/step-xml+zip"</span>
-    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".stpxz"</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".stpxz"</span></div>
+
 
 
 <div class="viewcode-block" id="Stl">
@@ -403,22 +415,28 @@
     <span class="n">magic_number</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"#X3D"</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">X3d___Fastinfoset</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+<div class="viewcode-block" id="X3d__Fastinfoset">
+<a class="viewcode-back" href="../../reference/model.html#fileformats.model.X3d__Fastinfoset">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">X3d__Fastinfoset</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
 
     <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">"model/x3d+fastinfoset"</span>
-    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".x3db"</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".x3db"</span></div>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">X3d___Xml</span><span class="p">(</span><span class="n">Model</span><span class="p">,</span> <span class="n">Xml</span><span class="p">):</span>
+
+<div class="viewcode-block" id="X3d__Xml">
+<a class="viewcode-back" href="../../reference/model.html#fileformats.model.X3d__Xml">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">X3d__Xml</span><span class="p">(</span><span class="n">Model</span><span class="p">,</span> <span class="n">Xml</span><span class="p">):</span>
 
     <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">"model/x3d+xml"</span>
-    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".x3d"</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".x3d"</span></div>
+
 
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">"E57"</span><span class="p">,</span>
     <span class="s2">"GltfBinary"</span><span class="p">,</span>
-    <span class="s2">"Gltf___Json"</span><span class="p">,</span>
+    <span class="s2">"Gltf__Json"</span><span class="p">,</span>
     <span class="s2">"Iges"</span><span class="p">,</span>
     <span class="s2">"Jt"</span><span class="p">,</span>
     <span class="s2">"Model"</span><span class="p">,</span>
@@ -426,14 +444,14 @@
     <span class="s2">"Obj"</span><span class="p">,</span>
     <span class="s2">"Prc"</span><span class="p">,</span>
     <span class="s2">"Step"</span><span class="p">,</span>
-    <span class="s2">"StepXml___Zip"</span><span class="p">,</span>
-    <span class="s2">"Step___Xml"</span><span class="p">,</span>
-    <span class="s2">"Step___Zip"</span><span class="p">,</span>
+    <span class="s2">"StepXml__Zip"</span><span class="p">,</span>
+    <span class="s2">"Step__Xml"</span><span class="p">,</span>
+    <span class="s2">"Step__Zip"</span><span class="p">,</span>
     <span class="s2">"Stl"</span><span class="p">,</span>
     <span class="s2">"U3d"</span><span class="p">,</span>
     <span class="s2">"X3dVrml"</span><span class="p">,</span>
-    <span class="s2">"X3d___Fastinfoset"</span><span class="p">,</span>
-    <span class="s2">"X3d___Xml"</span><span class="p">,</span>
+    <span class="s2">"X3d__Fastinfoset"</span><span class="p">,</span>
+    <span class="s2">"X3d__Xml"</span><span class="p">,</span>
     <span class="s2">"_3mf"</span><span class="p">,</span>
     <span class="s2">"__version__"</span><span class="p">,</span>
 <span class="p">]</span>
@@ -469,7 +487,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=7b661131"></script>
+</div><script src="../../_static/documentation_options.js?v=e42485ab"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

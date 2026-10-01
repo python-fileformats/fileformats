@@ -30,13 +30,16 @@ Extension formats (see :ref:`Extensions and Extras`) that don't define an
 ``iana_mime`` attribute in their class dictionary will be assigned a
 MIME-type of "application/x-<transformed-class-name>", where *transformed-class-name*
 is the name of the format class converted from "PascalCase" to "kebab-case", with
-single underscores in the class name converted to "." and a double underscores
-converted to "+" (there should be only one), e.g.
+single underscores in the class name converted to "." and double underscores
+converted to "+", e.g.
 
 .. code-block::
 
     >>> Nifti__Gzip_Json.mime_type
     "application/x-nifti+gzip.json"
+
+Classified types are converted from their classifiers rather than their class name
+(see :ref:`Classifiers`).
 
 Note that if there are two file-formats with the same class name in different sub-packages
 then the ``iana_mime`` attribute will need to be set on at least one of them otherwise an

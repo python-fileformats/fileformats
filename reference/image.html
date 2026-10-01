@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Image - FileFormats v0.19.0</title>
+        <title>Image - FileFormats v0.19.1</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -168,7 +168,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">FileFormats v0.19.0</div></a>
+      <a href="../index.html"><div class="brand">FileFormats v0.19.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -192,7 +192,7 @@
     <img class="sidebar-logo" src="../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.19.0</span>
+  <span class="sidebar-brand-text">FileFormats v0.19.1</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -603,6 +603,18 @@ specification)</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="fileformats.image.Svg__Xml">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">fileformats.image.</span></span><span class="sig-name descname"><span class="pre">Svg__Xml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">fspaths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="../api.html#fileformats.core.FileSet" title="fileformats.core.FileSet"><span class="pre">fileformats.core.FileSet</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">load_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fileformats/image/notclassifiedyet.html#Svg__Xml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fileformats.image.Svg__Xml" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Image</span></code>, <a class="reference internal" href="../api.html#fileformats.generic.BinaryFile" title="fileformats.generic.file.BinaryFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinaryFile</span></code></a></p>
+<p>SVG is used by Web browsers, often in conjunction with HTML; by mobile phones and
+digital cameras, as a format for interchange of graphical assets in desk top publishing,
+for industrial process visualization, display signage, and many other applications
+which require scalable static or interactive graphical capability.</p>
+<p>TODO: Note that the extension &quot;.svgz&quot; is used as an alias for &quot;.svg.gz&quot; [rfc1952]
+i.e. octet streams of type image/svg+xml subsequently compressed with gzip.</p>
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="fileformats.image.T38">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">fileformats.image.</span></span><span class="sig-name descname"><span class="pre">T38</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">fspaths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="../api.html#fileformats.core.FileSet" title="fileformats.core.FileSet"><span class="pre">fileformats.core.FileSet</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">load_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/fileformats/image/notclassifiedyet.html#T38"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fileformats.image.T38" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Image</span></code>, <a class="reference internal" href="../api.html#fileformats.generic.BinaryFile" title="fileformats.generic.file.BinaryFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinaryFile</span></code></a></p>
@@ -748,6 +760,7 @@ Explorer).</p>
 <li><a class="reference internal" href="#fileformats.image.Prs_Btif"><code class="docutils literal notranslate"><span class="pre">Prs_Btif</span></code></a></li>
 <li><a class="reference internal" href="#fileformats.image.Prs_Pti"><code class="docutils literal notranslate"><span class="pre">Prs_Pti</span></code></a></li>
 <li><a class="reference internal" href="#fileformats.image.PwgRaster"><code class="docutils literal notranslate"><span class="pre">PwgRaster</span></code></a></li>
+<li><a class="reference internal" href="#fileformats.image.Svg__Xml"><code class="docutils literal notranslate"><span class="pre">Svg__Xml</span></code></a></li>
 <li><a class="reference internal" href="#fileformats.image.T38"><code class="docutils literal notranslate"><span class="pre">T38</span></code></a></li>
 <li><a class="reference internal" href="#fileformats.image.TiffFx"><code class="docutils literal notranslate"><span class="pre">TiffFx</span></code></a></li>
 <li><a class="reference internal" href="#fileformats.image.Webp"><code class="docutils literal notranslate"><span class="pre">Webp</span></code></a></li>
@@ -765,7 +778,7 @@ Explorer).</p>
       
     </aside>
   </div>
-</div><script src="../_static/documentation_options.js?v=7b661131"></script>
+</div><script src="../_static/documentation_options.js?v=e42485ab"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>

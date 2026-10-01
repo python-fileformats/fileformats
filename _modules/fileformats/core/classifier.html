@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.classifier - FileFormats v0.19.0</title>
+        <title>fileformats.core.classifier - FileFormats v0.19.1</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.19.0</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.19.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.19.0</span>
+  <span class="sidebar-brand-text">FileFormats v0.19.1</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -301,6 +301,40 @@
             <span class="k">return</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="n">module_parts</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"_"</span><span class="p">,</span> <span class="s2">"-"</span><span class="p">)</span>
 
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_mime_format_name</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">namespace</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">vendor</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The format part of the MIME-like string of the class (i.e. after the "/").</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        namespace : str, optional</span>
+<span class="sd">            the namespace of the MIME-like string the name is part of, which is used by</span>
+<span class="sd">            classified types to determine whether their classifiers need to include</span>
+<span class="sd">            their namespace (see `WithClassifiers._mime_format_name`)</span>
+<span class="sd">        vendor : str, optional</span>
+<span class="sd">            the vendor of the MIME-like string the name is part of</span>
+<span class="sd">        """</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.identification</span><span class="w"> </span><span class="kn">import</span> <span class="n">to_mime_format_name</span>
+
+        <span class="k">return</span> <span class="n">to_mime_format_name</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_resolvable_in</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">namespace</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">vendor</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Whether the class can be referred to by name alone within a MIME-like string</span>
+<span class="sd">        of the given namespace and vendor, i.e. whether it will be found when the string</span>
+<span class="sd">        is parsed by `DataType.from_mime` without its namespace being included"""</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">namespace</span> <span class="o">==</span> <span class="n">namespace</span> <span class="ow">and</span> <span class="bp">cls</span><span class="o">.</span><span class="n">vendor</span> <span class="o">==</span> <span class="n">vendor</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="c1"># Classes in the parent namespace (e.g. "medimage" for "medimage-fsl") are</span>
+        <span class="c1"># also searched</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">vendor</span>
+            <span class="ow">and</span> <span class="s2">"-"</span> <span class="ow">in</span> <span class="n">namespace</span>
+            <span class="ow">and</span> <span class="bp">cls</span><span class="o">.</span><span class="n">namespace</span> <span class="o">==</span> <span class="n">namespace</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"-"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">dummy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 
         <span class="n">i</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
@@ -339,7 +373,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=7b661131"></script>
+</div><script src="../../../_static/documentation_options.js?v=e42485ab"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>

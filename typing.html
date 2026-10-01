@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Typing - FileFormats v0.19.0</title>
+        <title>Typing - FileFormats v0.19.1</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -168,7 +168,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">FileFormats v0.19.0</div></a>
+      <a href="index.html"><div class="brand">FileFormats v0.19.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -192,7 +192,7 @@
     <img class="sidebar-logo" src="_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.19.0</span>
+  <span class="sidebar-brand-text">FileFormats v0.19.1</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -313,17 +313,28 @@ It is being expanded as needed.</p>
 </div>
 <p>When classifiable types are converted into MIME-like strings, the classifiers are prepended to
 the type name with a '+' separator, e.g.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">to_mime</span><span class="p">(</span><span class="n">Zip</span><span class="p">[</span><span class="n">Png</span><span class="p">])</span> <span class="o">==</span> <span class="s2">"image/png+zip"</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">to_mime</span><span class="p">(</span><span class="n">Zip</span><span class="p">[</span><span class="n">Png</span><span class="p">],</span> <span class="n">official</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"image/png+zip"</span>
 </pre></div>
 </div>
 <p>If there are multiple classifiers, then they are arranged in alphabetic order (unless
-they are ordered) and separated by a '.' preceding the '+' separator</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">to_mime</span><span class="p">(</span><span class="n">NiftiGz</span><span class="p">[</span><span class="n">T1Weighted</span><span class="p">,</span> <span class="n">Brain</span><span class="p">])</span> <span class="o">==</span> <span class="s2">"medimage/brain.t1-weighted+nifti-gz"</span>
+they are ordered) and separated by '..' preceding the '+' separator</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">to_mime</span><span class="p">(</span><span class="n">NiftiGz</span><span class="p">[</span><span class="n">T1Weighted</span><span class="p">,</span> <span class="n">Brain</span><span class="p">],</span> <span class="n">official</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"medimage/brain..t1-weighted+nifti-gz"</span>
 </pre></div>
 </div>
-<p>Typically the classifier types need to belong to the same subpackage/registry as the
+<p>Classifiers that are themselves classified types are enclosed in square brackets, and
+can be nested to any depth</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">to_mime</span><span class="p">(</span><span class="n">Zip</span><span class="p">[</span><span class="n">Json</span><span class="p">[</span><span class="n">InformalSchema</span><span class="p">]],</span> <span class="n">official</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"application/[informal-schema+json]+zip"</span>
+<span class="n">to_mime</span><span class="p">(</span><span class="n">Zip</span><span class="p">[</span><span class="n">Zip</span><span class="p">[</span><span class="n">Json</span><span class="p">[</span><span class="n">InformalSchema</span><span class="p">]]],</span> <span class="n">official</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"application/[[informal-schema+json]+zip]+zip"</span>
+</pre></div>
+</div>
+<p>Typically the classifier types belong to the same subpackage/registry as the
 main type, but special classes such as <a class="reference internal" href="reference/application.html#fileformats.application.Zip" title="fileformats.application.Zip"><code class="xref py py-class docutils literal notranslate"><span class="pre">application.Zip</span></code></a> and <a class="reference internal" href="reference/application.html#fileformats.application.Gzip" title="fileformats.application.Gzip"><code class="xref py py-class docutils literal notranslate"><span class="pre">application.Gzip</span></code></a>,
-can be classified by any file format type. Other special classifiable types are the
+can be classified by any file format type. Classifiers from other subpackages/registries
+are enclosed in square brackets along with their own namespace, e.g.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">to_mime</span><span class="p">(</span><span class="n">Array</span><span class="p">[</span><span class="n">TestField</span><span class="p">],</span> <span class="n">official</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"field/[testing/test-field]+array"</span>
+</pre></div>
+</div>
+<p>All of these forms are converted back into the classified types by <code class="docutils literal notranslate"><span class="pre">from_mime</span></code>. Other special classifiable types are the
 <a class="reference internal" href="api.html#fileformats.generic.DirectoryOf" title="fileformats.generic.DirectoryOf"><code class="xref py py-class docutils literal notranslate"><span class="pre">generic.DirectoryOf</span></code></a> and <a class="reference internal" href="api.html#fileformats.generic.SetOf" title="fileformats.generic.SetOf"><code class="xref py py-class docutils literal notranslate"><span class="pre">generic.SetOf</span></code></a> collection types. These can
 be used to specify that a &quot;file format&quot; contains a collection of file formats within a
 directory or independent files, respectively.</p>
@@ -500,7 +511,7 @@ a subclass</p>
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=7b661131"></script>
+</div><script src="_static/documentation_options.js?v=e42485ab"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

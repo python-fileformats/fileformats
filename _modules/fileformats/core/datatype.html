@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.datatype - FileFormats v0.19.0</title>
+        <title>fileformats.core.datatype - FileFormats v0.19.1</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.19.0</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.19.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.19.0</span>
+  <span class="sidebar-brand-text">FileFormats v0.19.1</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -283,8 +283,8 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.identification</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">IANA_MIME_TYPE_REGISTRIES</span><span class="p">,</span>
+    <span class="n">formats_by_mime_format_name</span><span class="p">,</span>
     <span class="n">from_mime_format_name</span><span class="p">,</span>
-    <span class="n">to_mime_format_name</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_exc_note</span><span class="p">,</span> <span class="n">subpackages</span>
 
@@ -409,7 +409,7 @@
         <span class="n">mime_like</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">namespace</span> <span class="o">+</span> <span class="s2">"/"</span>
         <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">vendor</span><span class="p">:</span>
             <span class="n">mime_like</span> <span class="o">+=</span> <span class="s2">"vnd."</span> <span class="o">+</span> <span class="bp">cls</span><span class="o">.</span><span class="n">vendor</span> <span class="o">+</span> <span class="s2">"."</span>
-        <span class="n">mime_like</span> <span class="o">+=</span> <span class="n">to_mime_format_name</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>  <span class="c1"># type: ignore[attr-defined]</span>
+        <span class="n">mime_like</span> <span class="o">+=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_mime_format_name</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">namespace</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">vendor</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">mime_like</span>
 
     <span class="nd">@classmethod</span>
@@ -439,7 +439,11 @@
 <span class="sd">            if the MIME string does not correspond to a valid file format class</span>
 <span class="sd">        """</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">namespace</span><span class="p">,</span> <span class="n">format_name</span> <span class="o">=</span> <span class="n">mime_string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
+            <span class="c1"># Split on the first "/" only, as foreign-namespace classifiers can contain</span>
+            <span class="c1"># "/" within brackets, e.g. "field/[testing/test-field]+array"</span>
+            <span class="n">namespace</span><span class="p">,</span> <span class="n">format_name</span> <span class="o">=</span> <span class="n">mime_string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">namespace</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">format_name</span> <span class="ow">or</span> <span class="s2">"["</span> <span class="ow">in</span> <span class="n">namespace</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span>
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">FormatRecognitionError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"Format '</span><span class="si">{</span><span class="n">mime_string</span><span class="si">}</span><span class="s2">' is not a valid MIME-like format of &lt;namespace&gt;/&lt;format&gt;"</span>
@@ -489,96 +493,165 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">klass</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">matching_name</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># Get the path to the module to load the class from</span>
-            <span class="k">if</span> <span class="n">format_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"vnd."</span><span class="p">):</span>
-                <span class="n">name_parts</span> <span class="o">=</span> <span class="n">format_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
-                <span class="n">vendor</span> <span class="o">=</span> <span class="n">name_parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-                <span class="n">format_name</span> <span class="o">=</span> <span class="s2">"."</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">name_parts</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
-                <span class="n">module_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"fileformats.vendor.</span><span class="si">{</span><span class="n">vendor</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s2">"</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">module_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"fileformats.</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s2">"</span>
-            <span class="n">module_path</span> <span class="o">=</span> <span class="n">module_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"-"</span><span class="p">,</span> <span class="s2">"_"</span><span class="p">)</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">module_path</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="n">FormatRecognitionError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"Did not find fileformats namespace package at '</span><span class="si">{</span><span class="n">module_path</span><span class="si">}</span><span class="s2">' "</span>
-                    <span class="sa">f</span><span class="s2">"required to interpret '</span><span class="si">{</span><span class="n">mime_string</span><span class="si">}</span><span class="s2">' MIME, or MIME-like, type. "</span>
-                    <span class="sa">f</span><span class="s2">"try installing the namespace package with "</span>
-                    <span class="sa">f</span><span class="s2">"'python3 -m pip install fileformats-</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s2">'."</span>
-                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
-            <span class="n">class_name</span> <span class="o">=</span> <span class="n">from_mime_format_name</span><span class="p">(</span><span class="n">format_name</span><span class="p">)</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">klass</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">class_name</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-                <span class="k">if</span> <span class="s2">"+"</span> <span class="ow">in</span> <span class="n">format_name</span><span class="p">:</span>
-                    <span class="n">parent_namespace</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="s2">"_"</span> <span class="ow">in</span> <span class="n">namespace</span><span class="p">:</span>
-                        <span class="n">parent_namespace</span> <span class="o">=</span> <span class="n">namespace</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"_"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-                        <span class="n">parent_module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span>
-                            <span class="s2">"fileformats."</span> <span class="o">+</span> <span class="n">parent_namespace</span>
-                        <span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">parent_namespace</span> <span class="o">=</span> <span class="n">parent_module</span> <span class="o">=</span> <span class="kc">None</span>
-
-                    <span class="k">def</span><span class="w"> </span><span class="nf">get_format</span><span class="p">(</span><span class="n">mime_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">]:</span>
-                        <span class="n">name</span> <span class="o">=</span> <span class="n">from_mime_format_name</span><span class="p">(</span><span class="n">mime_name</span><span class="p">)</span>
-                        <span class="k">try</span><span class="p">:</span>
-                            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
-                        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-                            <span class="k">if</span> <span class="n">parent_module</span><span class="p">:</span>
-                                <span class="k">try</span><span class="p">:</span>
-                                    <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">parent_module</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
-                                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-                                    <span class="k">pass</span>
-                                <span class="n">err_msg_part</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">" or fileformats.</span><span class="si">{</span><span class="n">parent_namespace</span><span class="si">}</span><span class="s2">"</span>
-                            <span class="k">else</span><span class="p">:</span>
-                                <span class="n">err_msg_part</span> <span class="o">=</span> <span class="s2">""</span>
-                            <span class="k">raise</span> <span class="n">FormatRecognitionError</span><span class="p">(</span>
-                                <span class="sa">f</span><span class="s2">"Could not load format class </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> (from "</span>
-                                <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">mime_name</span><span class="si">}</span><span class="s2">') fileformats.</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s2">"</span>
-                                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">err_msg_part</span><span class="si">}</span><span class="s2"> corresponding "</span>
-                                <span class="sa">f</span><span class="s2">"to MIME, or MIME-like, type </span><span class="si">{</span><span class="n">mime_string</span><span class="si">}</span><span class="s2">"</span>
-                            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
-
-                    <span class="n">classifiers_str</span><span class="p">,</span> <span class="n">classified_name</span> <span class="o">=</span> <span class="n">format_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"+"</span><span class="p">)</span>
-                    <span class="n">classifiers</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_format</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classifiers_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">".."</span><span class="p">)]</span>
-                    <span class="k">try</span><span class="p">:</span>
-                        <span class="n">classified</span> <span class="o">=</span> <span class="n">get_format</span><span class="p">(</span><span class="n">classified_name</span><span class="p">)</span>
-                    <span class="k">except</span> <span class="n">FormatRecognitionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                        <span class="k">try</span><span class="p">:</span>
-                            <span class="n">classified</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">generically_classifiable_by_name</span><span class="p">[</span>
-                                <span class="n">classified_name</span>
-                            <span class="p">]</span>
-                        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-                            <span class="n">add_exc_note</span><span class="p">(</span>
-                                <span class="n">e</span><span class="p">,</span>
-                                <span class="p">(</span>
-                                    <span class="s2">"neither list of generic types "</span>
-                                    <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">generically_classifiable_by_name</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span>
-                                <span class="p">),</span>
-                            <span class="p">)</span>
-                            <span class="k">raise</span> <span class="n">e</span>
-                    <span class="n">klass</span> <span class="o">=</span> <span class="n">classified</span><span class="p">[</span><span class="n">classifiers</span><span class="p">]</span>  <span class="c1"># type: ignore</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="n">FormatRecognitionError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">"Did not find '</span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s2">' class in </span><span class="si">{</span><span class="n">module_path</span><span class="si">}</span><span class="s2"> "</span>
-                        <span class="sa">f</span><span class="s2">"corresponding to MIME, or MIME-like, type </span><span class="si">{</span><span class="n">mime_string</span><span class="si">}</span><span class="s2">"</span>
-                    <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+            <span class="n">klass</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_resolve_mime_like</span><span class="p">(</span>  <span class="c1"># type: ignore[assignment]</span>
+                <span class="n">namespace</span><span class="p">,</span> <span class="n">format_name</span><span class="p">,</span> <span class="n">mime_string</span>
+            <span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">ty</span><span class="o">.</span><span class="n">get_origin</span><span class="p">(</span><span class="n">klass</span><span class="p">)</span> <span class="ow">is</span> <span class="n">ty</span><span class="o">.</span><span class="n">Union</span> <span class="ow">or</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)):</span>
             <span class="k">raise</span> <span class="n">FormatRecognitionError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"Class '</span><span class="si">{</span><span class="n">klass</span><span class="si">}</span><span class="s2">' does not inherit from '</span><span class="si">{</span><span class="bp">cls</span><span class="si">}</span><span class="s2">'"</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">klass</span>
 
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_mime_like</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">namespace</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">format_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">mime_string</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">Classifier</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Resolve the format part of a "MIME-like" string within the given namespace,</span>
+<span class="sd">        including classified types, e.g. "b..a+k", which can be nested by enclosing</span>
+<span class="sd">        classified classifiers in brackets, e.g. "[informal-schema+json]+zip", and</span>
+<span class="sd">        refer to classifiers in other namespaces by including their namespace within the</span>
+<span class="sd">        brackets, e.g. "[testing/test-field]+array"</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        namespace : str</span>
+<span class="sd">            the namespace (with "-" replaced by "_") to resolve the format in</span>
+<span class="sd">        format_name : str</span>
+<span class="sd">            the format part of the MIME-like string (i.e. after the "/")</span>
+<span class="sd">        mime_string : str</span>
+<span class="sd">            the full MIME-like string being resolved, for error messages</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        type</span>
+<span class="sd">            the resolved datatype or classifier</span>
+<span class="sd">        """</span>
+        <span class="c1"># Get the path to the module to load the class from</span>
+        <span class="k">if</span> <span class="n">format_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"vnd."</span><span class="p">):</span>
+            <span class="n">name_parts</span> <span class="o">=</span> <span class="n">format_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
+            <span class="n">vendor</span> <span class="o">=</span> <span class="n">name_parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">format_name</span> <span class="o">=</span> <span class="s2">"."</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">name_parts</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+            <span class="n">module_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"fileformats.vendor.</span><span class="si">{</span><span class="n">vendor</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s2">"</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">module_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"fileformats.</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s2">"</span>
+        <span class="n">module_path</span> <span class="o">=</span> <span class="n">module_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"-"</span><span class="p">,</span> <span class="s2">"_"</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">module_path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">FormatRecognitionError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Did not find fileformats namespace package at '</span><span class="si">{</span><span class="n">module_path</span><span class="si">}</span><span class="s2">' "</span>
+                <span class="sa">f</span><span class="s2">"required to interpret '</span><span class="si">{</span><span class="n">mime_string</span><span class="si">}</span><span class="s2">' MIME, or MIME-like, type. "</span>
+                <span class="sa">f</span><span class="s2">"try installing the namespace package with "</span>
+                <span class="sa">f</span><span class="s2">"'python3 -m pip install fileformats-</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s2">'."</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">"["</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">format_name</span><span class="p">:</span>
+            <span class="n">class_name</span> <span class="o">=</span> <span class="n">from_mime_format_name</span><span class="p">(</span><span class="n">format_name</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">class_name</span><span class="p">)</span>  <span class="c1"># type: ignore[no-any-return]</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s2">"+"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">format_name</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">FormatRecognitionError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">"Did not find '</span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s2">' class in </span><span class="si">{</span><span class="n">module_path</span><span class="si">}</span><span class="s2"> "</span>
+                        <span class="sa">f</span><span class="s2">"corresponding to MIME, or MIME-like, type </span><span class="si">{</span><span class="n">mime_string</span><span class="si">}</span><span class="s2">"</span>
+                    <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+
+        <span class="n">parent_namespace</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">"_"</span> <span class="ow">in</span> <span class="n">namespace</span><span class="p">:</span>
+            <span class="n">parent_namespace</span> <span class="o">=</span> <span class="n">namespace</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"_"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">parent_module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s2">"fileformats."</span> <span class="o">+</span> <span class="n">parent_namespace</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">parent_namespace</span> <span class="o">=</span> <span class="n">parent_module</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_format</span><span class="p">(</span><span class="n">mime_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">Classifier</span><span class="p">]:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">from_mime_format_name</span><span class="p">(</span><span class="n">mime_name</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">parent_module</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">parent_module</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+                    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                        <span class="k">pass</span>
+                    <span class="n">err_msg_part</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">" or fileformats.</span><span class="si">{</span><span class="n">parent_namespace</span><span class="si">}</span><span class="s2">"</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">err_msg_part</span> <span class="o">=</span> <span class="s2">""</span>
+                <span class="k">raise</span> <span class="n">FormatRecognitionError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Could not load format class </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> (from "</span>
+                    <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">mime_name</span><span class="si">}</span><span class="s2">') fileformats.</span><span class="si">{</span><span class="n">namespace</span><span class="si">}</span><span class="s2">"</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">err_msg_part</span><span class="si">}</span><span class="s2"> corresponding "</span>
+                    <span class="sa">f</span><span class="s2">"to MIME, or MIME-like, type </span><span class="si">{</span><span class="n">mime_string</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">parse_item</span><span class="p">(</span><span class="n">item</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">Classifier</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">_is_single_bracketed</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+                <span class="n">inner</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">parts</span> <span class="o">=</span> <span class="n">_split_top_level</span><span class="p">(</span><span class="n">inner</span><span class="p">,</span> <span class="s2">"/"</span><span class="p">,</span> <span class="n">mime_string</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="c1"># Classifier from another namespace, e.g. "[testing/test-field]"</span>
+                    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_resolve_mime_like</span><span class="p">(</span>
+                        <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"-"</span><span class="p">,</span> <span class="s2">"_"</span><span class="p">),</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">mime_string</span>
+                    <span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">FormatRecognitionError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">"Invalid classifier '</span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="s2">' in MIME-like type </span><span class="si">{</span><span class="n">mime_string</span><span class="si">}</span><span class="s2">"</span>
+                    <span class="p">)</span>
+                <span class="k">return</span> <span class="n">parse</span><span class="p">(</span><span class="n">inner</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">"["</span> <span class="ow">in</span> <span class="n">item</span> <span class="ow">or</span> <span class="s2">"]"</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">FormatRecognitionError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Invalid classifier '</span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="s2">' in MIME-like type </span><span class="si">{</span><span class="n">mime_string</span><span class="si">}</span><span class="s2">, "</span>
+                    <span class="s2">"brackets must enclose the whole classifier"</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">get_format</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">parse</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">Classifier</span><span class="p">]:</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="n">_split_top_level</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">"+"</span><span class="p">,</span> <span class="n">mime_string</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">parse_item</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">FormatRecognitionError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Could not parse '</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">' in MIME-like type </span><span class="si">{</span><span class="n">mime_string</span><span class="si">}</span><span class="s2">, "</span>
+                    <span class="s2">"classified types used as classifiers need to be enclosed in "</span>
+                    <span class="s2">"brackets, e.g. '[informal-schema+json]+zip'"</span>
+                <span class="p">)</span>
+            <span class="n">classifiers_str</span><span class="p">,</span> <span class="n">classified_name</span> <span class="o">=</span> <span class="n">parts</span>
+            <span class="n">classifiers</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">parse_item</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">_split_top_level</span><span class="p">(</span><span class="n">classifiers_str</span><span class="p">,</span> <span class="s2">".."</span><span class="p">,</span> <span class="n">mime_string</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="n">classified</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">Classifier</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">_is_single_bracketed</span><span class="p">(</span><span class="n">classified_name</span><span class="p">):</span>
+                <span class="n">classified</span> <span class="o">=</span> <span class="n">parse_item</span><span class="p">(</span><span class="n">classified_name</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">classified</span> <span class="o">=</span> <span class="n">get_format</span><span class="p">(</span><span class="n">classified_name</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">FormatRecognitionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">classified</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">generically_classifiable_by_name</span><span class="p">[</span>
+                            <span class="n">classified_name</span>
+                        <span class="p">]</span>
+                    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                        <span class="n">add_exc_note</span><span class="p">(</span>
+                            <span class="n">e</span><span class="p">,</span>
+                            <span class="p">(</span>
+                                <span class="s2">"neither list of generic types "</span>
+                                <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">generically_classifiable_by_name</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span>
+                            <span class="p">),</span>
+                        <span class="p">)</span>
+                        <span class="k">raise</span> <span class="n">e</span>
+            <span class="k">return</span> <span class="n">classified</span><span class="p">[</span><span class="n">classifiers</span><span class="p">]</span>  <span class="c1"># type: ignore</span>
+
+        <span class="k">return</span> <span class="n">parse</span><span class="p">(</span><span class="n">format_name</span><span class="p">)</span>
+
     <span class="nd">@classproperty</span>  <span class="c1"># type: ignore[arg-type]</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">generically_classifiable_by_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">]]:</span>
         <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_generically_classifiable_by_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">cls</span><span class="o">.</span><span class="n">_generically_classifiable_by_name</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="n">to_mime_format_name</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="vm">__name__</span><span class="p">):</span> <span class="n">f</span>
-                <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">FileSet</span><span class="o">.</span><span class="n">all_formats</span>
-                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">"generically_classifiable"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-            <span class="p">}</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_generically_classifiable_by_name</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                <span class="n">formats_by_mime_format_name</span><span class="p">(</span>
+                    <span class="n">f</span>
+                    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">FileSet</span><span class="o">.</span><span class="n">all_formats</span>
+                    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">"generically_classifiable"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_generically_classifiable_by_name</span>
 
     <span class="c1"># Register all generically classified types</span>
@@ -589,6 +662,50 @@
     <span class="n">REQUIRED_ANNOTATION</span> <span class="o">=</span> <span class="s2">"__fileformats_required__"</span>
     <span class="n">CHECK_ANNOTATION</span> <span class="o">=</span> <span class="s2">"__fileformats_check__"</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_split_top_level</span><span class="p">(</span><span class="n">string</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sep</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">mime_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Split `string` on `sep`, ignoring occurrences of `sep` within brackets"""</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">depth</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
+        <span class="n">char</span> <span class="o">=</span> <span class="n">string</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">char</span> <span class="o">==</span> <span class="s2">"["</span><span class="p">:</span>
+            <span class="n">depth</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">char</span> <span class="o">==</span> <span class="s2">"]"</span><span class="p">:</span>
+            <span class="n">depth</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">depth</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="k">elif</span> <span class="n">depth</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">string</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">sep</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">string</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sep</span><span class="p">)</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="k">continue</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">depth</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">FormatRecognitionError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Unbalanced brackets in MIME-like type </span><span class="si">{</span><span class="n">mime_string</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">string</span><span class="p">[</span><span class="n">start</span><span class="p">:])</span>
+    <span class="k">return</span> <span class="n">parts</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_single_bracketed</span><span class="p">(</span><span class="n">item</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether `item` is enclosed in a single pair of matching brackets, e.g. "[a+b]"</span>
+<span class="sd">    but not "[a]..[b]" """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"["</span><span class="p">)</span> <span class="ow">and</span> <span class="n">item</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"]"</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="n">depth</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">char</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">char</span> <span class="o">==</span> <span class="s2">"["</span><span class="p">:</span>
+            <span class="n">depth</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">char</span> <span class="o">==</span> <span class="s2">"]"</span><span class="p">:</span>
+            <span class="n">depth</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">depth</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="n">depth</span> <span class="o">==</span> <span class="mi">0</span>
 
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">fileformats.core.converter_helpers</span>  <span class="c1"># noqa</span>
@@ -627,7 +744,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=7b661131"></script>
+</div><script src="../../../_static/documentation_options.js?v=e42485ab"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>

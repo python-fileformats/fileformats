@@ -58,19 +58,34 @@ the type name with a '+' separator, e.g.
 
 .. code-block:: python
 
-    to_mime(Zip[Png]) == "image/png+zip"
+    to_mime(Zip[Png], official=False) == "image/png+zip"
 
 
 If there are multiple classifiers, then they are arranged in alphabetic order (unless
-they are ordered) and separated by a '.' preceding the '+' separator
+they are ordered) and separated by '..' preceding the '+' separator
 
 .. code-block:: python
 
-    to_mime(NiftiGz[T1Weighted, Brain]) == "medimage/brain.t1-weighted+nifti-gz"
+    to_mime(NiftiGz[T1Weighted, Brain], official=False) == "medimage/brain..t1-weighted+nifti-gz"
 
-Typically the classifier types need to belong to the same subpackage/registry as the
+Classifiers that are themselves classified types are enclosed in square brackets, and
+can be nested to any depth
+
+.. code-block:: python
+
+    to_mime(Zip[Json[InformalSchema]], official=False) == "application/[informal-schema+json]+zip"
+    to_mime(Zip[Zip[Json[InformalSchema]]], official=False) == "application/[[informal-schema+json]+zip]+zip"
+
+Typically the classifier types belong to the same subpackage/registry as the
 main type, but special classes such as :class:`.application.Zip` and :class:`.application.Gzip`,
-can be classified by any file format type. Other special classifiable types are the
+can be classified by any file format type. Classifiers from other subpackages/registries
+are enclosed in square brackets along with their own namespace, e.g.
+
+.. code-block:: python
+
+    to_mime(Array[TestField], official=False) == "field/[testing/test-field]+array"
+
+All of these forms are converted back into the classified types by ``from_mime``. Other special classifiable types are the
 :class:`.generic.DirectoryOf` and :class:`.generic.SetOf` collection types. These can
 be used to specify that a "file format" contains a collection of file formats within a
 directory or independent files, respectively.
