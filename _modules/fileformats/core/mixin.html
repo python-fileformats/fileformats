@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.mixin - FileFormats v0.19.1</title>
+        <title>fileformats.core.mixin - FileFormats v0.19.2</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.19.1</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.19.2</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.19.1</span>
+  <span class="sidebar-brand-text">FileFormats v0.19.2</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -352,6 +352,9 @@
 <span class="sd">        be read from the file, by default it will be the length of the magic_pattern</span>
 <span class="sd">        string (which will probably be longer than the string it matches due to the</span>
 <span class="sd">        special characters in the regex)</span>
+
+<span class="sd">    Override `decode_version` to control how the bytes captured by the groups in the</span>
+<span class="sd">    magic pattern are translated into version strings (UTF-8 decoding by default)</span>
 <span class="sd">    """</span>
 
     <span class="n">binary</span><span class="p">:</span> <span class="nb">bool</span>
@@ -373,7 +376,9 @@
                 <span class="sa">f</span><span class="s2">"Byte-string of length </span><span class="si">{</span><span class="n">read_length</span><span class="si">}</span><span class="s2"> at </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">magic_pattern_offset</span><span class="si">}</span><span class="s2"> "</span>
                 <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">read_bytes</span><span class="si">!r}</span><span class="s2">), doesn't match expected pattern, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">magic_pattern</span><span class="si">!r}</span><span class="s2">"</span>
             <span class="p">)</span>
-        <span class="n">version</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">())</span>
+        <span class="n">version</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decode_version</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+        <span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">version</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">FormatDefinitionError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"No version patterns found in magic pattern of </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> "</span>
@@ -381,7 +386,25 @@
             <span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">version</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">version</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">version</span></div>
+        <span class="k">return</span> <span class="n">version</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decode_version</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">version_bytes</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Translates the bytes captured by a group in the magic pattern into a version</span>
+<span class="sd">        string. Override in subclasses where the version isn't encoded as text, e.g.</span>
+<span class="sd">        a version number stored as a raw byte value</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        version_bytes : bytes</span>
+<span class="sd">            the bytes captured by a group in the magic pattern</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            the version string</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="n">version_bytes</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span></div>
 
 
 
@@ -1136,7 +1159,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=e42485ab"></script>
+</div><script src="../../../_static/documentation_options.js?v=9e923e44"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
