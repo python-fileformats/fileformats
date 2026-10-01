@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.loaded - FileFormats v0.19.2</title>
+        <title>fileformats.core.loaded - FileFormats v0.19.3</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.19.2</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.19.3</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.19.2</span>
+  <span class="sidebar-brand-text">FileFormats v0.19.3</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -317,12 +317,38 @@
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="k">return</span> <span class="kc">None</span>
             <span class="n">tp</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_annotated</span><span class="p">(</span><span class="n">tp</span><span class="p">)</span></div>
+
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">all_from_hint</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tp</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">ty</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="s2">"LoadedMarker"</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""Return the markers of a union of ``Loaded[X]`` hints, optionally including</span>
+<span class="sd">        None (e.g. ``Loaded[X] | Loaded[Y] | None``), in the order they appear, which</span>
+<span class="sd">        callers can use to find the formats that data can be loaded from. A single</span>
+<span class="sd">        ``Loaded[X]`` hint returns a one-item list.</span>
+
+<span class="sd">        Returns None if any member of the union (other than None) isn't a</span>
+<span class="sd">        ``Loaded[X]`` hint, or for any other hint.</span>
+
+<span class="sd">        Hints must be obtained with ``get_type_hints(..., include_extras=True)`` or</span>
+<span class="sd">        ``inspect.signature(..., eval_str=True)``, otherwise ``Annotated`` is stripped.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">ty</span><span class="o">.</span><span class="n">get_origin</span><span class="p">(</span><span class="n">tp</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ty</span><span class="o">.</span><span class="n">Union</span><span class="p">,</span> <span class="n">types</span><span class="o">.</span><span class="n">UnionType</span><span class="p">):</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">ty</span><span class="o">.</span><span class="n">get_args</span><span class="p">(</span><span class="n">tp</span><span class="p">)</span> <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">tp</span><span class="p">]</span>
+        <span class="n">markers</span> <span class="o">=</span> <span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">_from_annotated</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">markers</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="n">m</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">markers</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">markers</span>  <span class="c1"># type: ignore[return-value]</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_from_annotated</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tp</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="s2">"LoadedMarker"</span><span class="p">]:</span>
         <span class="k">if</span> <span class="n">ty</span><span class="o">.</span><span class="n">get_origin</span><span class="p">(</span><span class="n">tp</span><span class="p">)</span> <span class="ow">is</span> <span class="n">Annotated</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">meta</span> <span class="ow">in</span> <span class="n">tp</span><span class="o">.</span><span class="n">__metadata__</span><span class="p">:</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
                     <span class="k">return</span> <span class="n">meta</span>
         <span class="k">return</span> <span class="kc">None</span></div>
-</div>
 
 
 
@@ -432,7 +458,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=9e923e44"></script>
+</div><script src="../../../_static/documentation_options.js?v=01d0aade"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
