@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.fileset - FileFormats v0.19.3</title>
+        <title>fileformats.core.fileset - FileFormats v0.19.4</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.19.3</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.19.4</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.19.3</span>
+  <span class="sidebar-brand-text">FileFormats v0.19.4</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -965,6 +965,13 @@
         <span class="k">if</span> <span class="n">converter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fileset</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">copy</span><span class="p">(</span><span class="n">fileset</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">converter</span><span class="o">.</span><span class="n">is_chain</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">.converter_chain</span><span class="w"> </span><span class="kn">import</span> <span class="n">assign_kwargs</span>
+
+            <span class="c1"># Check the kwargs can be assigned to the converters in the chain before</span>
+            <span class="c1"># running the workflow, where they are applied</span>
+            <span class="n">assign_kwargs</span><span class="p">(</span><span class="n">converter</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">chain</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"converter_kwargs"</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">}</span> <span class="k">if</span> <span class="n">kwargs</span> <span class="k">else</span> <span class="p">{}</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="n">converter</span><span class="o">.</span><span class="n">in_file</span><span class="p">]</span> <span class="o">=</span> <span class="n">fileset</span>
         <span class="n">task</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">converter</span><span class="o">.</span><span class="n">task</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="c1"># We need to use a fresh cache root each time to avoid picking up previous</span>
@@ -982,6 +989,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">get_converter</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">source_format</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">],</span>
+        <span class="n">allow_chains</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ty.Optional[Converter]"</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get a converter that converts from the source format type</span>
 <span class="sd">        into the format specified by the class</span>
@@ -990,10 +998,9 @@
 <span class="sd">        ----------</span>
 <span class="sd">        source_format : type</span>
 <span class="sd">            the format to convert from</span>
-<span class="sd">        name : str</span>
-<span class="sd">            the name given to the converter task</span>
-<span class="sd">        **kwargs</span>
-<span class="sd">            evolve the task definition</span>
+<span class="sd">        allow_chains : bool, optional</span>
+<span class="sd">            whether to chain converters together to convert via intermediate formats</span>
+<span class="sd">            if there is no direct converter available, by default True</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1010,44 +1017,110 @@
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">source_format</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">None</span>
-        <span class="c1"># trigger loading of standard converters for target format</span>
-        <span class="n">converters</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_converters_dict</span><span class="p">()</span>
         <span class="c1"># import extras modules</span>
         <span class="n">source_format</span><span class="o">.</span><span class="n">_import_extras_module</span><span class="p">()</span>  <span class="c1"># type: ignore[attr-defined]</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">_import_extras_module</span><span class="p">()</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">converter</span> <span class="o">=</span> <span class="n">converters</span><span class="p">[</span><span class="n">source_format</span><span class="p">]</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">find_direct</span><span class="p">(</span><span class="n">target</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">FileSet</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">"Converter | None"</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">"""Find a converter directly from the source format to the given target"""</span>
+            <span class="c1"># trigger loading of standard converters for target format</span>
+            <span class="n">converters</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">get_converters_dict</span><span class="p">()</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">_import_extras_module</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">converters</span><span class="p">[</span><span class="n">source_format</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
             <span class="c1"># If no direct mapping check for mapping from source super types and wildcard</span>
             <span class="c1"># matches</span>
-            <span class="n">available_converters</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_converter_defs</span><span class="p">(</span><span class="n">source_format</span><span class="p">)</span>
+            <span class="n">available_converters</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">get_converter_defs</span><span class="p">(</span><span class="n">source_format</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">available_converters</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="c1"># FIXME: Hack to avoid situation where multiple converters get added but are identical</span>
                 <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="n">available_converters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">available_converters</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
                     <span class="n">available_converters</span> <span class="o">=</span> <span class="p">[</span><span class="n">available_converters</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">available_converters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">available_converters</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
                     <span class="n">available_str</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">task</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">available_converters</span><span class="p">)</span>
                     <span class="k">raise</span> <span class="n">FormatConversionError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">"Ambiguous converters found between '</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">mime_like</span><span class="si">}</span><span class="s2">' and "</span>
+                        <span class="sa">f</span><span class="s2">"Ambiguous converters found between '</span><span class="si">{</span><span class="n">target</span><span class="o">.</span><span class="n">mime_like</span><span class="si">}</span><span class="s2">' and "</span>
                         <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">source_format</span><span class="o">.</span><span class="n">mime_like</span><span class="si">}</span><span class="s2">':</span><span class="se">\n</span><span class="si">{</span><span class="n">available_str</span><span class="si">}</span><span class="s2">"</span>
                     <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">available_converters</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"Could not find converter between '</span><span class="si">{</span><span class="n">source_format</span><span class="o">.</span><span class="n">mime_like</span><span class="si">}</span><span class="s2">' and "</span>
-                    <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">mime_like</span><span class="si">}</span><span class="s2">' formats"</span>
-                <span class="p">)</span>
-                <span class="n">extras_mod</span> <span class="o">=</span> <span class="n">import_extras_module</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">extras_mod</span><span class="o">.</span><span class="n">imported</span><span class="p">:</span>
-                    <span class="n">msg</span> <span class="o">+=</span> <span class="p">(</span>
-                        <span class="sa">f</span><span class="s1">'. Was not able to import "extras" module, </span><span class="si">{</span><span class="n">extras_mod</span><span class="o">.</span><span class="n">pkg</span><span class="si">}</span><span class="s1">, '</span>
-                        <span class="sa">f</span><span class="s2">"you may want to try installing the '</span><span class="si">{</span><span class="n">extras_mod</span><span class="o">.</span><span class="n">pypi</span><span class="si">}</span><span class="s2">' package "</span>
-                        <span class="sa">f</span><span class="s2">"from PyPI (e.g. pip install </span><span class="si">{</span><span class="n">extras_mod</span><span class="o">.</span><span class="n">pypi</span><span class="si">}</span><span class="s2">) or check it isn't broken"</span>
-                    <span class="p">)</span>
-                <span class="k">raise</span> <span class="n">FormatConversionError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+                <span class="k">return</span> <span class="kc">None</span>
             <span class="n">converter</span> <span class="o">=</span> <span class="n">available_converters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="c1"># Store mapping for future reference</span>
             <span class="n">converters</span><span class="p">[</span><span class="n">source_format</span><span class="p">]</span> <span class="o">=</span> <span class="n">converter</span>
+            <span class="k">return</span> <span class="n">converter</span>
+
+        <span class="n">converter</span> <span class="o">=</span> <span class="n">find_direct</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">converter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">allow_chains</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">converter</span><span class="o">.</span><span class="n">is_chain</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">converter</span>
+        <span class="c1"># If there is no direct converter, search back from the target format through</span>
+        <span class="c1"># the formats that can be converted into it (breadth-first, so the shortest</span>
+        <span class="c1"># chains are found) until one is found that the source format can be converted</span>
+        <span class="c1"># into directly</span>
+        <span class="n">chains</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Converter</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">visited</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="bp">cls</span><span class="p">,</span> <span class="n">source_format</span><span class="p">}</span>
+        <span class="c1"># Formats to search from, along with the chain of converters from them to the</span>
+        <span class="c1"># target format</span>
+        <span class="n">level</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">FileSet</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="n">Converter</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">[(</span><span class="bp">cls</span><span class="p">,</span> <span class="p">[])]</span>
+        <span class="k">while</span> <span class="n">allow_chains</span> <span class="ow">and</span> <span class="n">level</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">chains</span><span class="p">:</span>
+            <span class="n">next_level</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">target</span><span class="p">,</span> <span class="n">downstream</span> <span class="ow">in</span> <span class="n">level</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">intermediate</span><span class="p">,</span> <span class="n">conv</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">get_converters_dict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                    <span class="c1"># Skip converters with wildcards, as the intermediate format they</span>
+                    <span class="c1"># convert from isn't fully defined, previously cached chains, and</span>
+                    <span class="c1"># formats already searched to avoid circular conversions</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">conv</span><span class="o">.</span><span class="n">classifiers</span>
+                        <span class="ow">or</span> <span class="n">conv</span><span class="o">.</span><span class="n">is_chain</span>
+                        <span class="ow">or</span> <span class="ow">not</span> <span class="p">(</span>
+                            <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="n">intermediate</span><span class="p">)</span>
+                            <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">intermediate</span><span class="p">,</span> <span class="n">FileSet</span><span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="ow">or</span> <span class="n">intermediate</span> <span class="ow">in</span> <span class="n">visited</span>
+                    <span class="p">):</span>
+                        <span class="k">continue</span>
+                    <span class="n">chain</span> <span class="o">=</span> <span class="p">[</span><span class="n">conv</span><span class="p">]</span> <span class="o">+</span> <span class="n">downstream</span>
+                    <span class="n">first</span> <span class="o">=</span> <span class="n">find_direct</span><span class="p">(</span><span class="n">intermediate</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">first</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">next_level</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">intermediate</span><span class="p">,</span> <span class="n">chain</span><span class="p">))</span>
+                    <span class="k">elif</span> <span class="n">first</span><span class="o">.</span><span class="n">is_chain</span><span class="p">:</span>
+                        <span class="c1"># Flatten previously cached chains</span>
+                        <span class="n">chains</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">first</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">chain</span><span class="p">)</span> <span class="o">+</span> <span class="n">chain</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">chains</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">first</span><span class="p">]</span> <span class="o">+</span> <span class="n">chain</span><span class="p">)</span>
+            <span class="c1"># Mark visited only after the whole level has been searched so that all</span>
+            <span class="c1"># alternative chains of the same length are found</span>
+            <span class="n">visited</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">next_level</span><span class="p">)</span>
+            <span class="n">level</span> <span class="o">=</span> <span class="n">next_level</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">chains</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Could not find converter between '</span><span class="si">{</span><span class="n">source_format</span><span class="o">.</span><span class="n">mime_like</span><span class="si">}</span><span class="s2">' and "</span>
+                <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">mime_like</span><span class="si">}</span><span class="s2">' formats"</span>
+            <span class="p">)</span>
+            <span class="n">extras_mod</span> <span class="o">=</span> <span class="n">import_extras_module</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">extras_mod</span><span class="o">.</span><span class="n">imported</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">'. Was not able to import "extras" module, </span><span class="si">{</span><span class="n">extras_mod</span><span class="o">.</span><span class="n">pkg</span><span class="si">}</span><span class="s1">, '</span>
+                    <span class="sa">f</span><span class="s2">"you may want to try installing the '</span><span class="si">{</span><span class="n">extras_mod</span><span class="o">.</span><span class="n">pypi</span><span class="si">}</span><span class="s2">' package "</span>
+                    <span class="sa">f</span><span class="s2">"from PyPI (e.g. pip install </span><span class="si">{</span><span class="n">extras_mod</span><span class="o">.</span><span class="n">pypi</span><span class="si">}</span><span class="s2">) or check it isn't broken"</span>
+                <span class="p">)</span>
+            <span class="k">raise</span> <span class="n">FormatConversionError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.converter_chain</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConverterChain</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.converter_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Converter</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">chain_sort_key</span><span class="p">(</span><span class="n">chain</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Converter</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">            </span><span class="sd">"""Favour shorter chains, then those with fewer templated (i.e. wildcard</span>
+<span class="sd">            or generic) converters, then alphabetical order of converter names"""</span>
+            <span class="n">num_templated</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+                <span class="nb">bool</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">classifiers</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span> <span class="ow">is</span> <span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">SubtypeVar</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+                <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chain</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">chain</span><span class="p">),</span> <span class="n">num_templated</span><span class="p">,</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">task</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chain</span><span class="p">])</span>
+
+        <span class="n">converter</span> <span class="o">=</span> <span class="n">Converter</span><span class="p">(</span><span class="n">ConverterChain</span><span class="p">(</span><span class="n">chain</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">chains</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">chain_sort_key</span><span class="p">)))</span>
+        <span class="c1"># Store mapping for future reference</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">get_converters_dict</span><span class="p">()[</span><span class="n">source_format</span><span class="p">]</span> <span class="o">=</span> <span class="n">converter</span>
         <span class="k">return</span> <span class="n">converter</span></div>
 
 
@@ -1155,9 +1228,8 @@
         <span class="n">available</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">src_frmt</span><span class="p">,</span> <span class="n">converter</span> <span class="ow">in</span> <span class="n">converters_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="c1"># Ignore converters with wildcards at this point</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">converter</span><span class="o">.</span><span class="n">classifiers</span><span class="p">:</span>
-                <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">source_format</span><span class="p">,</span> <span class="n">src_frmt</span><span class="p">):</span>
-                    <span class="n">available</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">converter</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">converter</span><span class="o">.</span><span class="n">classifiers</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">source_format</span><span class="p">,</span> <span class="n">src_frmt</span><span class="p">):</span>
+                <span class="n">available</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">converter</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">available</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">source_format</span><span class="p">,</span> <span class="s2">"unclassified"</span><span class="p">):</span>
             <span class="n">available</span> <span class="o">=</span> <span class="n">SubtypeVar</span><span class="o">.</span><span class="n">get_converter_defs</span><span class="p">(</span><span class="n">source_format</span><span class="p">,</span> <span class="n">target_format</span><span class="o">=</span><span class="bp">cls</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">available</span>
@@ -1697,14 +1769,13 @@
         <span class="kn">from</span><span class="w"> </span><span class="nn">..generic</span><span class="w"> </span><span class="kn">import</span> <span class="n">File</span>
 
         <span class="n">decomposed_fspaths</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">implicit</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">required_paths</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">required_only</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_paths</span><span class="p">()</span>
-            <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fspaths</span>
-        <span class="p">)</span>
+        <span class="n">required_paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_paths</span><span class="p">()</span> <span class="k">if</span> <span class="n">required_only</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">implicit</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">required_paths</span> <span class="k">if</span> <span class="n">required_paths</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">fspaths</span><span class="p">)</span>
 
-        <span class="k">def</span><span class="w"> </span><span class="nf">is_subpath</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">others</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-            <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">path</span> <span class="o">!=</span> <span class="n">o</span> <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">is_relative_to</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">others</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">is_subpath</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">others</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">AbstractSet</span><span class="p">[</span><span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+            <span class="c1"># Check the (few) parents of the path against the set of other paths, rather</span>
+            <span class="c1"># than checking the path against each of the (potentially many) others</span>
+            <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">p</span> <span class="ow">in</span> <span class="n">others</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">parents</span><span class="p">)</span>
 
         <span class="c1"># Paths that are to be included in the decomposition</span>
         <span class="n">to_include</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">implicit</span><span class="p">)</span>
@@ -1751,10 +1822,11 @@
         <span class="c1"># Drop any paths that are nested within other paths in the set, as they will</span>
         <span class="c1"># be copied/moved along with their parent</span>
         <span class="n">full_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="o">/</span> <span class="p">(</span><span class="n">s</span> <span class="o">+</span> <span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">decomposed_fspaths</span><span class="p">]</span>
+        <span class="n">full_paths_set</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">full_paths</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">[</span>
             <span class="n">d</span>
             <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">fp</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">decomposed_fspaths</span><span class="p">,</span> <span class="n">full_paths</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_subpath</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">full_paths</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_subpath</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">full_paths_set</span><span class="p">)</span>
         <span class="p">]</span></div>
 
 
@@ -2538,7 +2610,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=01d0aade"></script>
+</div><script src="../../../_static/documentation_options.js?v=6bff499a"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
