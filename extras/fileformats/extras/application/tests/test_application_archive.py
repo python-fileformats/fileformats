@@ -1,9 +1,10 @@
 import filecmp
+import zipfile
+
 import pytest
-from fileformats.generic import File, Directory
+from fileformats.generic import File, Directory, SetOf
 from fileformats.application import Zip, Gzip, Tar, TarGzip
 from fileformats.text import Plain as PlainText
-
 
 TEST_DIR = "__test_dir__"
 TEST_FILE = "__test_file__.txt"
@@ -37,6 +38,27 @@ def archive_input(work_dir, request):
 
 def test_zip_roundtrip(archive_input):
     _roundtrip(archive_input, Zip)
+
+
+@pytest.mark.parametrize("num_files", [1, 2])
+def test_zip_typed_set(work_dir, num_files):
+    first = work_dir / "first.txt"
+    first.write_text("first")
+    paths = [first]
+    if num_files == 2:
+        nested = work_dir / "nested"
+        nested.mkdir()
+        second = nested / "second.txt"
+        second.write_text("second")
+        paths.append(second)
+
+    fileset = SetOf[PlainText](paths)
+    for archive_type in (Zip, Zip[type(fileset)]):
+        archive = archive_type.convert(fileset)
+        with zipfile.ZipFile(archive.fspath) as zfile:
+            assert {name: zfile.read(name).decode() for name in zfile.namelist()} == {
+                str(path.relative_to(work_dir)): path.read_text() for path in paths
+            }
 
 
 @pytest.mark.parametrize(
