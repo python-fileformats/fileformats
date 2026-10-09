@@ -139,11 +139,11 @@ def extract_tar(
     return extracted[0]
 
 
-@converter(source_format=FsObject, target_format=Zip)  # type: ignore[untyped-decorator]
+@converter(source_format=FileSet, target_format=Zip)  # type: ignore[untyped-decorator]
 @converter(source_format=Compressed, target_format=Zip[Compressed])  # type: ignore[untyped-decorator,misc]
 @python.define(outputs={"out_file": Zip})  # type: ignore[untyped-decorator]
 def create_zip(
-    in_file: FsObject,
+    in_file: FileSet,
     out_file: ty.Optional[Path] = None,
     base_dir: ty.Optional[Path] = None,
     compression: int | str = zipfile.ZIP_DEFLATED,
@@ -152,10 +152,7 @@ def create_zip(
     strict_timestamps: bool = True,
 ) -> Zip:
 
-    if len(in_file.fspaths) > 1:
-        raise NotImplementedError(
-            "Can only archive file-sets with single paths currently"
-        )
+    fspaths = sorted(in_file.fspaths)
 
     if isinstance(compression, str):
         try:
@@ -169,10 +166,11 @@ def create_zip(
         compression_flag = compression
 
     if out_file is None:  # type: ignore[comparison-overlap]
-        out_file = Path(Path(in_file).name + ".zip")
+        name = fspaths[0].name if len(fspaths) == 1 else "archive"
+        out_file = Path(name + ".zip")
 
     if base_dir is None:  # type: ignore[comparison-overlap]
-        base_dir = Path(in_file).parent
+        base_dir = Path(os.path.commonpath([str(p.parent) for p in fspaths]))
 
     out_file = out_file.absolute()
 
@@ -187,7 +185,7 @@ def create_zip(
         ) as zfile,
         set_cwd(base_dir),
     ):
-        for fspath in in_file.fspaths:
+        for fspath in fspaths:
             fspath = Path(fspath)
             if fspath.is_dir():
                 for dpath, _, files in os.walk(fspath):
