@@ -57,7 +57,8 @@ def test_zip_typed_set(work_dir, num_files):
         archive = archive_type.convert(fileset)
         with zipfile.ZipFile(archive.fspath) as zfile:
             assert {name: zfile.read(name).decode() for name in zfile.namelist()} == {
-                str(path.relative_to(work_dir)): path.read_text() for path in paths
+                path.relative_to(work_dir).as_posix(): path.read_text()
+                for path in paths
             }
 
 
