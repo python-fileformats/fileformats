@@ -2,6 +2,8 @@ import io
 import logging
 import re
 import typing as ty
+
+from .archive import archive_safe
 from pathlib import Path
 
 import fileformats.core
@@ -83,6 +85,7 @@ class WithMagicNumber:
                 f"{ref_magic!r}"
             )
 
+    @archive_safe
     @validated_property
     def _check_magic_number(self) -> None:
         with self.open("rb" if getattr(self, "binary", True) else "r") as fh:

@@ -119,11 +119,16 @@ def fspaths_converter(fspaths: FspathsInputType) -> ty.FrozenSet[Path]:
     """Ensures fs-paths are a set of pathlib.Path"""
     import fileformats.core
 
+    from fileformats.core.archive import ArchivePath
+
     if isinstance(fspaths, fileformats.core.FileSet):
         fspaths = fspaths.fspaths
-    elif isinstance(fspaths, (str, os.PathLike)):
-        fspaths = [Path(fspaths)]
-    return frozenset(_resolve_windows_path(Path(p).absolute()) for p in fspaths)
+    elif isinstance(fspaths, (str, os.PathLike, ArchivePath)):
+        fspaths = [fspaths]  # type: ignore[list-item]
+    return frozenset(
+        p if isinstance(p, ArchivePath) else _resolve_windows_path(Path(p).absolute())
+        for p in fspaths
+    )
 
 
 # Cache of drive-letter → UNC root (None if not a mapped network drive)

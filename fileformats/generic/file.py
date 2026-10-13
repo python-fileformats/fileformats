@@ -1,5 +1,7 @@
 import io
 import typing as ty
+
+from fileformats.core.archive import ArchiveAccessError, archive_safe
 from pathlib import Path
 
 from fileformats.core.decorators import (
@@ -19,6 +21,7 @@ from .fsobject import FsObject
 class File(FsObject):
     """Generic file type"""
 
+    @archive_safe
     @validated_property
     def fspath(self) -> Path:
         fspath = self.select_by_ext()
@@ -97,6 +100,14 @@ class File(FsObject):
         newline: ty.Optional[str] = None,
     ) -> ty.Union[ty.IO[str], ty.IO[bytes]]:
         """Open a I/O stream to the file"""
+        if self.is_archived:
+            if any(c in mode for c in "wax+"):
+                raise ArchiveAccessError(f"Archived file-sets are read-only ({self})")
+            if "b" in mode:
+                return self.fspath.open(mode)  # type: ignore[no-any-return]
+            return self.fspath.open(  # type: ignore[no-any-return]
+                mode, encoding=encoding, errors=errors, newline=newline
+            )
         return self.fspath.open(
             mode=mode,
             buffering=buffering,

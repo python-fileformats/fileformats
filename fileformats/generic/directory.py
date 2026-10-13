@@ -2,6 +2,7 @@ import typing as ty
 from pathlib import Path
 
 from fileformats.core.collection import TypedCollection
+from fileformats.core.archive import archive_safe
 from fileformats.core.decorators import mtime_cached_property, validated_property
 from fileformats.core.exceptions import FormatMismatchError
 from fileformats.core.fileset import FILE_CHUNK_LEN_DEFAULT, FileSet
@@ -18,6 +19,7 @@ class Directory(FsObject):
 
     content_types: ty.Tuple[ty.Type[FileSet], ...] = ()
 
+    @archive_safe
     @validated_property
     def fspath(self) -> Path:
         # fspaths are checked for existence with the exception of mock classes

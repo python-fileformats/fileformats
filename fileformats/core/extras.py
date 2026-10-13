@@ -46,6 +46,17 @@ def extra(method: ExtraMethod) -> "ExtraMethod":
         extras = []
         for tp in cls.referenced_types():  # type: ignore[attr-defined]
             extras.append(import_extras_module(tp))
+        if getattr(obj, "is_archived", False):
+            from .archive import ArchiveAccessError, is_archive_safe
+
+            impl = dispatch_method.dispatch(cls)  # type: ignore[attr-defined]
+            if impl is not dispatch_method.dispatch(object) and not is_archive_safe(impl):  # type: ignore[attr-defined]
+                raise ArchiveAccessError(
+                    f"The '{method.__name__}' implementation for {cls.__name__} "
+                    f"({impl.__module__}.{impl.__name__}) is not marked @archive_safe, "
+                    "so it can't be used on a file-set inside an archive. Extract or "
+                    "convert the archive first"
+                )
         try:
             return dispatch_method(obj, *args, **kwargs)
         except NotImplementedError:

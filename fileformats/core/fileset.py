@@ -255,9 +255,26 @@ class FileSet(DataType):
     def _additional_fspaths(self) -> None:
         """Additional checks to be performed on the file-system paths provided to the"""
 
+    @property
+    def is_archived(self) -> bool:
+        """Whether the file-set's paths point inside an archive (see
+        `fileformats.core.archive`), in which case only `archive_safe` validated
+        properties and extras can be used"""
+        from .archive import ArchivePath
+
+        return any(isinstance(p, ArchivePath) for p in self.fspaths)
+
     def _validate_properties(self) -> None:
+        from .archive import ArchiveAccessError, is_archive_safe
+
+        archived = self.is_archived
         # Check required properties don't raise errors
         for prop_name in self.validated_properties():
+            if archived and not is_archive_safe(getattr(type(self), prop_name)):
+                raise ArchiveAccessError(
+                    f"Cannot validate {type(self).__name__} inside an archive as its "
+                    f"'{prop_name}' check is not marked @archive_safe"
+                )
             getattr(self, prop_name)
 
     def __eq__(self, other: object) -> bool:
@@ -494,6 +511,8 @@ class FileSet(DataType):
         return tuple(required_props)
 
     def required_paths(self) -> ty.FrozenSet[Path]:
+        from .archive import as_path
+
         """Returns all fspaths that are required for the format"""
         required = set()
         for prop_name in self.validated_properties():
@@ -509,11 +528,11 @@ class FileSet(DataType):
                     )
                     raise
             elif isinstance(prop, os.PathLike):
-                paths = [Path(prop)]
+                paths = [as_path(prop)]
             elif isinstance(prop, ty.Iterable):
                 for p in prop:
                     if isinstance(p, os.PathLike):
-                        paths.append(Path(p))
+                        paths.append(as_path(p))
             for path in paths:
                 if path in self.fspaths:
                     required.add(path)
@@ -1446,7 +1465,9 @@ class FileSet(DataType):
         remaining : set[Path]
             remaining file-system paths that weren't used in any of the file-sets
         """
-        fspaths = [Path(p) for p in fspaths]
+        from .archive import as_path
+
+        fspaths = [as_path(p) for p in fspaths]
         filesets = set()
         remaining = set(fspaths)
         for fspath in fspaths:

@@ -1,5 +1,7 @@
 import sys
 import typing as ty
+
+from fileformats.core.archive import archive_safe
 from pathlib import Path
 
 from fileformats.application import Dicom
@@ -29,15 +31,16 @@ TagListType: TypeAlias = ty.Union[
 
 
 @extra_implementation(FileSet.read_metadata)
+@archive_safe
 def dicom_read_metadata(
     dicom: Dicom,
     metadata_keys: ty.Optional[TagListType] = None,
     **kwargs: ty.Any,
 ) -> ty.Mapping[str, ty.Any]:
     check_optional_dependency(pydicom)
-    dcm = pydicom.dcmread(
-        dicom.fspath, specific_tags=metadata_keys, stop_before_pixels=True
-    )
+    # read from a stream rather than the path so this also works inside archives
+    with dicom.open("rb") as f:
+        dcm = pydicom.dcmread(f, specific_tags=metadata_keys, stop_before_pixels=True)
     return Dicom.pydicom_to_dict(dcm)
 
 

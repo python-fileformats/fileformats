@@ -3,6 +3,7 @@ import sys
 import typing as ty
 from pathlib import Path
 
+from fileformats.core.archive import archive_safe
 from fileformats.core.decorators import classproperty, validated_property
 from fileformats.core.exceptions import FormatMismatchError
 from fileformats.core.fileset import FileSet
@@ -11,6 +12,7 @@ from fileformats.core.fileset import FileSet
 class FsObject(FileSet, os.PathLike):  # type: ignore
     "Generic file-system object, can be either a file or a directory"
 
+    @archive_safe
     @validated_property
     def fspath(self) -> Path:
         if len(self.fspaths) > 1:
@@ -30,7 +32,8 @@ class FsObject(FileSet, os.PathLike):  # type: ignore
     def __fspath__(self) -> str:
         """Render to string, so can be treated as any other file-system path, i.e. passed
         to functions like file 'open'"""
-        return str(self)
+        # go via os.fspath so that ArchivePath members refuse to be rendered as paths
+        return os.fspath(self.fspath)
 
     @property
     def stem(self) -> str:

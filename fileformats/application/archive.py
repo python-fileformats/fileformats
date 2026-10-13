@@ -3,10 +3,15 @@ import bz2
 import gzip
 import io
 import lzma
+import tempfile
 import typing as ty
+import zipfile
+from pathlib import Path
 
 from fileformats.core import FileSet
-from fileformats.core.decorators import validated_property
+from fileformats.core.archive import ZipPath, archive_safe, zip_members
+from fileformats.core.decorators import mtime_cached_property, validated_property
+from fileformats.core.exceptions import FormatMismatchError
 from fileformats.core.mixin import WithClassifier, WithMagicNumber
 from fileformats.generic import BinaryFile
 
@@ -126,6 +131,7 @@ class BaseBzip(WithMagicNumber, Compressed):
     magic_number = "425a"
     codec = _BZ2File
 
+    @archive_safe
     @validated_property
     def validate_outer_magic(self):
         with self.open_raw('rb') as fh:
@@ -142,6 +148,7 @@ class BaseGzip(WithMagicNumber, Compressed):
     magic_number = "1F8B08"
     codec = _GzipFile
 
+    @archive_safe
     @validated_property
     def validate_outer_magic(self):
         with self.open_raw('rb') as fh:
@@ -158,6 +165,7 @@ class BaseXz(WithMagicNumber, Compressed):
     magic_number = "FD 37 7A 58 5A 00"
     codec = _LZMAFile
 
+    @archive_safe
     @validated_property
     def validate_outer_magic(self):
         with self.open_raw('rb') as fh:
@@ -184,7 +192,62 @@ class BaseTarGzip(WithMagicNumber, Archive):
 
 
 class Zip(WithArchiveClassifiers, BaseZip):
+    """A zip archive, optionally classified by the type of file-set it contains, e.g.
+    ``Zip[DicomSeries]``. The contained file-set can be inspected *without* extracting
+    it via ``archived`` (backed by `ZipPath` objects, so only ``@archive_safe``
+    properties and extras are available), or materialised on disk with ``extract()``.
+    """
+
     iana_mime = "application/zip"
+
+    @property
+    def root(self) -> ZipPath:
+        "Traversable path to the root of the archive"
+        return ZipPath(self.fspath)
+
+    @mtime_cached_property
+    def archived(self) -> FileSet:
+        """The archived file-set, viewed in place inside the archive"""
+        archived_type = self.archived_type or FileSet
+        return archived_type(*self._archived_fspaths(archived_type))
+
+    @validated_property
+    def _check_archived(self) -> None:
+        # Only validate the contents for classified zips, e.g. Zip[DicomSeries]
+        if self.archived_type is not None:
+            try:
+                self.archived
+            except FormatMismatchError as e:
+                raise FormatMismatchError(
+                    f"Contents of {self.fspath} are not a valid "
+                    f"{self.archived_type.__name__}: {e}"
+                ) from e
+
+    def extract(self, dest_dir: ty.Optional[Path] = None) -> FileSet:
+        """Extract the archive and return the contained file-set on the real
+        file-system, e.g. to pass to tools that need real paths"""
+        if dest_dir is None:
+            dest_dir = Path(tempfile.mkdtemp())
+        dest_dir = Path(dest_dir).absolute()
+        with zipfile.ZipFile(self.fspath) as zf:
+            zf.extractall(dest_dir)
+        archived_type = self.archived_type or FileSet
+        return archived_type(
+            *(dest_dir / p.at for p in self._archived_fspaths(archived_type))
+        )
+
+    def _archived_fspaths(self, archived_type: ty.Type[FileSet]) -> ty.List[ZipPath]:
+        from fileformats.generic import Directory
+
+        if isinstance(archived_type, type) and issubclass(archived_type, Directory):
+            tops = {p for p in self.root.iterdir()}
+            if len(tops) != 1:
+                raise FormatMismatchError(
+                    f"Expected a single top-level directory in {self.fspath} for "
+                    f"{archived_type.__name__}, found {sorted(str(t) for t in tops)}"
+                )
+            return list(tops)  # type: ignore[arg-type]
+        return zip_members(self.fspath)
 
 
 class Bzip(WithArchiveClassifiers, BaseBzip):
