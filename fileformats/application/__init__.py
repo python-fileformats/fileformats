@@ -1,6 +1,6 @@
 from fileformats.core import __version__
 
-from .archive import Archive, Bzip, Gzip, Tar, TarGzip, Zip
+from .archive import Archive, Bzip, Gzip, Xz, Tar, TarGzip, Zip
 from .document import Document, Msword, Pdf, Postscript
 from .medical import Dicom
 from .misc import (
@@ -517,6 +517,7 @@ __all__ = [
     "Zip",
     "Bzip",
     "Gzip",
+    "Xz",
     "Tar",
     "TarGzip",
     "Document",

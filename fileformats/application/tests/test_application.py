@@ -1,6 +1,6 @@
 import pytest
 
-from fileformats.application import Bzip, Gzip, Tar, TarGzip, Zip
+from fileformats.application import Bzip, Gzip, Tar, TarGzip, Xz, Zip
 from fileformats.core.identification import to_mime
 
 
@@ -14,6 +14,7 @@ def test_circular_import_between_text_and_application():
         (Zip, "application/zip"),
         (Bzip, "application/bzip"),
         (Gzip, "application/gzip"),
+        (Xz, "application/x-xz"),
         (Tar, "application/x-tar"),
         (TarGzip, "application/x-tar+gzip"),
     ],
