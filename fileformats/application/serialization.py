@@ -1,6 +1,8 @@
+import json
 import typing as ty
 
-from fileformats.core import DataType
+from fileformats.core import DataType, validated_property
+from fileformats.core.exceptions import FormatMismatchError
 from fileformats.core.mixin import WithClassifier
 from fileformats.core.typing import TypeAlias
 from fileformats.generic import UnicodeFile
@@ -46,7 +48,14 @@ class Json(TextSerialization):
     ext: ty.Optional[str] = ".json"
     allowed_classifiers = (JsonSchema, InformalSchema)
 
-    # TODO: add validation mechanisms to check class
+    @validated_property
+    def validate_contents(self):
+        try:
+            with self.open(encoding="utf-8") as handle:
+                json.load(handle)
+        except (ValueError, UnicodeDecodeError) as exception:
+            raise FormatMismatchError(f"{self.fspath} does not contain valid JSON: {exception}") from exception
+
 
 
 class Yaml(TextSerialization):
