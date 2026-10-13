@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.fileset - FileFormats v0.19.5</title>
+        <title>fileformats.core.fileset - FileFormats v0.19.6</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.19.5</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.19.6</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.19.5</span>
+  <span class="sidebar-brand-text">FileFormats v0.19.6</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -272,7 +272,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">copy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">IntEnum</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">attrgetter</span><span class="p">,</span> <span class="n">itemgetter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">itemgetter</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn</span>
 
@@ -286,6 +286,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">fileformats.core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_excluded_subpackages</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.classifier</span><span class="w"> </span><span class="kn">import</span> <span class="n">Classifier</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.convertible</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConvertibleToMarker</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.datatype</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">VALIDATED_PROPERTY_FLAG</span><span class="p">,</span> <span class="n">classproperty</span><span class="p">,</span> <span class="n">mtime_cached_property</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -318,6 +319,13 @@
 
 <span class="k">class</span><span class="w"> </span><span class="nc">SupportsDunderGT</span><span class="p">(</span><span class="n">ty</span><span class="o">.</span><span class="n">Protocol</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__gt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">specificity_sort_key</span><span class="p">(</span><span class="n">datatype</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Key to sort types from the most to the least specific, and then by their name.</span>
+<span class="sd">    A class always has more classes in its MRO than any of its base classes, so</span>
+<span class="sd">    subclasses are always sorted before their base classes"""</span>
+    <span class="k">return</span> <span class="p">(</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">getmro</span><span class="p">(</span><span class="n">datatype</span><span class="p">)),</span> <span class="n">datatype</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
 
 
 <span class="n">FileSetPrimitive</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">ty</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">ty</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]</span>
@@ -1156,20 +1164,27 @@
         <span class="n">union_sort_key</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Callable</span><span class="p">[</span>
             <span class="p">[</span><span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">]],</span>
             <span class="n">ty</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">SupportsDunderLT</span><span class="p">,</span> <span class="n">SupportsDunderGT</span><span class="p">],</span>
-        <span class="p">]</span> <span class="o">=</span> <span class="n">attrgetter</span><span class="p">(</span><span class="s2">"__name__"</span><span class="p">),</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="s2">"DataType"</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""Union of types that can be converted to this type, including the current type.</span>
-<span class="sd">        If there are no other types that can be converted to this type, return the current type</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">specificity_sort_key</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Union of types that can be converted to this type, including the current type</span>
+<span class="sd">        (or just the current type if there are no other types that can be converted to</span>
+<span class="sd">        it), annotated with the type it was created from so that it can be written to</span>
+<span class="sd">        a MIME-like string as "&lt;namespace&gt;/&lt;format&gt;+convertible-to" instead of the</span>
+<span class="sd">        union, i.e. ``Annotated[&lt;union&gt;, ConvertibleToMarker(cls)]``, which is what</span>
+<span class="sd">        ``ConvertibleTo[cls]`` evaluates to</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        union_sort_key : callable[[DataType], Any], optional</span>
-<span class="sd">            A function used to sort the union of types. Defaults to sorting by the type name.</span>
+<span class="sd">            A function used to sort the union of types. Defaults to sorting from the</span>
+<span class="sd">            most to the least specific type (i.e. subclasses before their base classes),</span>
+<span class="sd">            so that the first type in the union that matches a file-set is the most</span>
+<span class="sd">            specific one, and then by the type name.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        Type[DataType]</span>
-<span class="sd">            The type or union of types that can be converted to this type.</span>
+<span class="sd">        Annotated[Type[DataType], ConvertibleToMarker]</span>
+<span class="sd">            The annotated type or union of types that can be converted to this type.</span>
 <span class="sd">        """</span>
 
         <span class="n">datatypes</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span><span class="bp">cls</span><span class="p">]</span>
@@ -1184,8 +1199,9 @@
             <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">subcls</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
                 <span class="n">subcls</span><span class="o">.</span><span class="n">_import_extras_module</span><span class="p">()</span>
                 <span class="n">datatypes</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">subcls</span><span class="o">.</span><span class="n">get_converters_dict</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">marker</span> <span class="o">=</span> <span class="n">ConvertibleToMarker</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">datatypes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">cls</span>
+            <span class="k">return</span> <span class="n">ty</span><span class="o">.</span><span class="n">Annotated</span><span class="p">[</span><span class="bp">cls</span><span class="p">,</span> <span class="n">marker</span><span class="p">]</span>
         <span class="n">concrete_datatypes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 
         <span class="k">def</span><span class="w"> </span><span class="nf">add_concrete</span><span class="p">(</span><span class="n">datatype</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1202,9 +1218,10 @@
         <span class="k">for</span> <span class="n">datatype</span> <span class="ow">in</span> <span class="n">datatypes</span><span class="p">:</span>
             <span class="n">add_concrete</span><span class="p">(</span><span class="n">datatype</span><span class="p">)</span>
         <span class="c1"># TODO: Might want to sort datatypes in a more specific order</span>
-        <span class="k">return</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span>
+        <span class="n">union</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span>
             <span class="n">operator</span><span class="o">.</span><span class="n">or_</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">concrete_datatypes</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">union_sort_key</span><span class="p">)</span>
-        <span class="p">)</span>  <span class="c1"># type: ignore[return-value]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">ty</span><span class="o">.</span><span class="n">Annotated</span><span class="p">[</span><span class="n">union</span><span class="p">,</span> <span class="n">marker</span><span class="p">]</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_converter_defs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">source_format</span><span class="p">:</span> <span class="nb">type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="s2">"Converter"</span><span class="p">]:</span>
@@ -2610,7 +2627,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=f4bddd00"></script>
+</div><script src="../../../_static/documentation_options.js?v=8e0b66ef"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>

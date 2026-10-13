@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.identification - FileFormats v0.19.5</title>
+        <title>fileformats.core.identification - FileFormats v0.19.6</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.19.5</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.19.6</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.19.5</span>
+  <span class="sidebar-brand-text">FileFormats v0.19.6</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -267,6 +267,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">fileformats.core</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fileformats.core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">FormatDefinitionError</span><span class="p">,</span> <span class="n">FormatRecognitionError</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">.convertible</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConvertibleToMarker</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">add_exc_note</span><span class="p">,</span>
     <span class="n">fspaths_converter</span><span class="p">,</span>
@@ -393,6 +394,15 @@
             <span class="k">return</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">from_mime</span><span class="p">(</span><span class="n">item_mime</span><span class="p">)]</span>  <span class="c1"># type: ignore</span>
     <span class="k">if</span> <span class="s2">"|"</span> <span class="ow">in</span> <span class="n">mime_str</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">or_</span><span class="p">,</span> <span class="p">(</span><span class="n">from_mime</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">mime_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"|"</span><span class="p">)))</span>  <span class="c1"># type: ignore</span>
+    <span class="k">if</span> <span class="n">mime_str</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">ConvertibleToMarker</span><span class="o">.</span><span class="n">mime_suffix</span><span class="p">):</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="n">from_mime</span><span class="p">(</span><span class="n">mime_str</span><span class="p">[:</span> <span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">ConvertibleToMarker</span><span class="o">.</span><span class="n">mime_suffix</span><span class="p">)])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="n">fmt</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">fmt</span><span class="p">,</span> <span class="n">fileformats</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">FileSet</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="n">FormatRecognitionError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">ConvertibleToMarker</span><span class="o">.</span><span class="n">mime_suffix</span><span class="si">}</span><span class="s2">' in '</span><span class="si">{</span><span class="n">mime_str</span><span class="si">}</span><span class="s2">' can only be "</span>
+                <span class="sa">f</span><span class="s2">"applied to file-set formats, not </span><span class="si">{</span><span class="n">fmt</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="c1"># Resolved from the converters installed in the current environment</span>
+        <span class="k">return</span> <span class="n">ConvertibleToMarker</span><span class="p">(</span><span class="n">fmt</span><span class="p">)</span><span class="o">.</span><span class="n">hint</span><span class="p">()</span>  <span class="c1"># type: ignore[no-any-return]</span>
     <span class="k">return</span> <span class="n">fileformats</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">DataType</span><span class="o">.</span><span class="n">from_mime</span><span class="p">(</span><span class="n">mime_str</span><span class="p">)</span></div>
 
 
@@ -421,11 +431,23 @@
 <span class="sd">        registry if not</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">is_optional</span><span class="p">(</span><span class="n">datatype</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">to_mime</span><span class="p">(</span><span class="n">get_optional_type</span><span class="p">(</span><span class="n">datatype</span><span class="p">))</span> <span class="o">+</span> <span class="s2">"?"</span>
+        <span class="k">return</span> <span class="n">to_mime</span><span class="p">(</span><span class="n">get_optional_type</span><span class="p">(</span><span class="n">datatype</span><span class="p">),</span> <span class="n">official</span><span class="o">=</span><span class="n">official</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"?"</span>
     <span class="c1"># Handle forward references</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">datatype</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">ForwardRef</span><span class="p">):</span>
         <span class="n">datatype</span> <span class="o">=</span> <span class="n">datatype</span><span class="o">.</span><span class="n">__forward_arg__</span>
     <span class="n">origin</span> <span class="o">=</span> <span class="n">ty</span><span class="o">.</span><span class="n">get_origin</span><span class="p">(</span><span class="n">datatype</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">origin</span> <span class="ow">is</span> <span class="n">ty</span><span class="o">.</span><span class="n">Annotated</span><span class="p">:</span>
+        <span class="n">marker</span> <span class="o">=</span> <span class="n">ConvertibleToMarker</span><span class="o">.</span><span class="n">from_hint</span><span class="p">(</span><span class="n">datatype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">marker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">official</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Cannot convert </span><span class="si">{</span><span class="n">datatype</span><span class="si">}</span><span class="s2"> to official mime-type as it "</span>
+                    <span class="s2">"depends on the converters that are installed, please use "</span>
+                    <span class="s1">'official=False to convert to "mime-like" string instead'</span>
+                <span class="p">)</span>
+            <span class="c1"># Only the format is written, not the formats that are convertible to</span>
+            <span class="c1"># it, so they are resolved again when the string is read</span>
+            <span class="k">return</span> <span class="n">to_mime</span><span class="p">(</span><span class="n">marker</span><span class="o">.</span><span class="n">format</span><span class="p">,</span> <span class="n">official</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">+</span> <span class="n">marker</span><span class="o">.</span><span class="n">mime_suffix</span>
     <span class="k">if</span> <span class="p">(</span>
         <span class="n">origin</span> <span class="ow">is</span> <span class="kc">None</span>
         <span class="ow">and</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="n">datatype</span><span class="p">)</span>
@@ -644,7 +666,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=f4bddd00"></script>
+</div><script src="../../../_static/documentation_options.js?v=8e0b66ef"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>

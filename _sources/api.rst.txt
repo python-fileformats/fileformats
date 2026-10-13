@@ -49,6 +49,18 @@ Annotations for data loaded from a file format (see :ref:`Loaded data`)
 .. autofunction:: fileformats.core.check_loaded
 
 
+Convertible-format annotations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Annotation for the formats that can be converted to a file format (see
+:ref:`Convertible formats`)
+
+.. autoclass:: fileformats.core.ConvertibleTo
+
+.. autoclass:: fileformats.core.ConvertibleToMarker
+    :members: from_hint, resolve, hint
+
+
 Extra hooks
 ~~~~~~~~~~~
 

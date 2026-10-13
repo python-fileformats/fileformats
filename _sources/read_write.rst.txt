@@ -201,6 +201,56 @@ classmethod
     )
     ...
 
+Convertible formats
+~~~~~~~~~~~~~~~~~~~
+
+The formats that can be converted to a format, with the converters that are installed
+in the current environment, are returned by the ``convertible_from`` classmethod as a
+union that includes the format itself, annotated with a marker recording the format it
+was created from
+
+.. code-block:: python
+
+    >>> from fileformats.image import Png
+    >>> Png.convertible_from()
+    typing.Annotated[fileformats.image.raster.Png | fileformats.image.raster.RasterImage, ConvertibleToMarker(format=<class 'fileformats.image.raster.Png'>)]
+
+Functions that accept any format that can be converted to the one they need can be
+annotated with ``ConvertibleTo[<format>]``. At runtime this evaluates to
+``<format>.convertible_from()``, so the format it was created from can be recovered in
+the same way as for :ref:`Loaded data`
+
+.. code-block:: python
+
+    import inspect
+    from fileformats.core import ConvertibleTo, ConvertibleToMarker
+    from fileformats.image import Png
+
+    def thumbnail(image: ConvertibleTo[Png]) -> Png:
+        ...
+
+    hint = inspect.signature(thumbnail, eval_str=True).parameters["image"].annotation
+    marker = ConvertibleToMarker.from_hint(hint)
+    marker.format  # -> Png
+    png = marker.format.convert(image)
+
+The union is resolved when the annotation is evaluated, so it doesn't include converters
+that are registered afterwards. ``marker.hint()`` returns the annotated union, and ``marker.resolve()`` the plain
+union, for the converters that are registered at the time they are called.
+
+In "MIME-like" strings (see :ref:`MIME types`) it is written as the format it was
+created from with a "+convertible-to" suffix instead of as the union, so the formats
+are resolved again from the converters that are installed in the environment that the
+string is read in
+
+.. code-block:: python
+
+    >>> from fileformats.core import to_mime, from_mime
+    >>> to_mime(ConvertibleTo[Png], official=False)
+    "image/png+convertible-to"
+    >>> from_mime("image/png+convertible-to") == ConvertibleTo[Png]
+    True
+
 
 
 .. _Pydra: https://pydra.readthedocs.io

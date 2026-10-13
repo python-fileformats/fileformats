@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Read, write and convert - FileFormats v0.19.5</title>
+        <title>Read, write and convert - FileFormats v0.19.6</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -168,7 +168,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">FileFormats v0.19.5</div></a>
+      <a href="index.html"><div class="brand">FileFormats v0.19.6</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -192,7 +192,7 @@
     <img class="sidebar-logo" src="_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.19.5</span>
+  <span class="sidebar-brand-text">FileFormats v0.19.6</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -443,6 +443,49 @@ classmethod</p>
 <span class="o">...</span>
 </pre></div>
 </div>
+<section id="convertible-formats">
+<h3>Convertible formats<a class="headerlink" href="#convertible-formats" title="Link to this heading">¶</a></h3>
+<p>The formats that can be converted to a format, with the converters that are installed
+in the current environment, are returned by the <code class="docutils literal notranslate"><span class="pre">convertible_from</span></code> classmethod as a
+union that includes the format itself, annotated with a marker recording the format it
+was created from</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">fileformats.image</span><span class="w"> </span><span class="kn">import</span> <span class="n">Png</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Png</span><span class="o">.</span><span class="n">convertible_from</span><span class="p">()</span>
+<span class="go">typing.Annotated[fileformats.image.raster.Png | fileformats.image.raster.RasterImage, ConvertibleToMarker(format=&lt;class 'fileformats.image.raster.Png'&gt;)]</span>
+</pre></div>
+</div>
+<p>Functions that accept any format that can be converted to the one they need can be
+annotated with <code class="docutils literal notranslate"><span class="pre">ConvertibleTo[&lt;format&gt;]</span></code>. At runtime this evaluates to
+<code class="docutils literal notranslate"><span class="pre">&lt;format&gt;.convertible_from()</span></code>, so the format it was created from can be recovered in
+the same way as for <a class="reference internal" href="#loaded-data"><span class="std std-ref">Loaded data</span></a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fileformats.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConvertibleTo</span><span class="p">,</span> <span class="n">ConvertibleToMarker</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fileformats.image</span><span class="w"> </span><span class="kn">import</span> <span class="n">Png</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">thumbnail</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">ConvertibleTo</span><span class="p">[</span><span class="n">Png</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Png</span><span class="p">:</span>
+    <span class="o">...</span>
+
+<span class="n">hint</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">thumbnail</span><span class="p">,</span> <span class="n">eval_str</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">"image"</span><span class="p">]</span><span class="o">.</span><span class="n">annotation</span>
+<span class="n">marker</span> <span class="o">=</span> <span class="n">ConvertibleToMarker</span><span class="o">.</span><span class="n">from_hint</span><span class="p">(</span><span class="n">hint</span><span class="p">)</span>
+<span class="n">marker</span><span class="o">.</span><span class="n">format</span>  <span class="c1"># -&gt; Png</span>
+<span class="n">png</span> <span class="o">=</span> <span class="n">marker</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The union is resolved when the annotation is evaluated, so it doesn't include converters
+that are registered afterwards. <code class="docutils literal notranslate"><span class="pre">marker.hint()</span></code> returns the annotated union, and <code class="docutils literal notranslate"><span class="pre">marker.resolve()</span></code> the plain
+union, for the converters that are registered at the time they are called.</p>
+<p>In &quot;MIME-like&quot; strings (see <a class="reference internal" href="mime.html#mime-types"><span class="std std-ref">MIME types</span></a>) it is written as the format it was
+created from with a &quot;+convertible-to&quot; suffix instead of as the union, so the formats
+are resolved again from the converters that are installed in the environment that the
+string is read in</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">fileformats.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">to_mime</span><span class="p">,</span> <span class="n">from_mime</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">to_mime</span><span class="p">(</span><span class="n">ConvertibleTo</span><span class="p">[</span><span class="n">Png</span><span class="p">],</span> <span class="n">official</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">"image/png+convertible-to"</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">from_mime</span><span class="p">(</span><span class="s2">"image/png+convertible-to"</span><span class="p">)</span> <span class="o">==</span> <span class="n">ConvertibleTo</span><span class="p">[</span><span class="n">Png</span><span class="p">]</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</section>
 </section>
 </section>
 
@@ -511,7 +554,10 @@ classmethod</p>
 <li><a class="reference internal" href="#loaded-data">Loaded data</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#converters">Converters</a></li>
+<li><a class="reference internal" href="#converters">Converters</a><ul>
+<li><a class="reference internal" href="#convertible-formats">Convertible formats</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -523,7 +569,7 @@ classmethod</p>
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=f4bddd00"></script>
+</div><script src="_static/documentation_options.js?v=8e0b66ef"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
