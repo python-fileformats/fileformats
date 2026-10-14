@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.fileset - FileFormats v0.20.0</title>
+        <title>fileformats.core.fileset - FileFormats v0.21.1</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.20.0</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.21.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.20.0</span>
+  <span class="sidebar-brand-text">FileFormats v0.21.1</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -270,6 +270,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ty</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">copy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">IntEnum</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">itemgetter</span>
@@ -332,6 +333,9 @@
 
 
 <span class="n">FILE_CHUNK_LEN_DEFAULT</span> <span class="o">=</span> <span class="mi">8192</span>
+<span class="c1"># Filesets with fewer files than this are hashed serially, as the overhead of starting</span>
+<span class="c1"># a thread pool outweighs any gains</span>
+<span class="n">MIN_FILES_FOR_THREADED_HASHING</span> <span class="o">=</span> <span class="mi">3</span>
 
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">"fileformats"</span><span class="p">)</span>
@@ -1546,6 +1550,7 @@
         <span class="n">relative_to</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">ignore_hidden_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">ignore_hidden_dirs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">max_workers</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Calculate hashes for all files in the file-set based on the relative paths and</span>
 <span class="sd">        contents of its constituent files</span>
@@ -1554,6 +1559,10 @@
 <span class="sd">        ----------</span>
 <span class="sd">        crypto : function, optional</span>
 <span class="sd">            the cryptography method used to hash the files, by default hashlib.sha256</span>
+<span class="sd">        max_workers : int, optional</span>
+<span class="sd">            the number of threads used to hash the files concurrently. If None, defaults</span>
+<span class="sd">            to the default of ``concurrent.futures.ThreadPoolExecutor``. Pass 1 to hash</span>
+<span class="sd">            the files serially. Filesets with only a few files are always hashed serially</span>
 <span class="sd">        **kwargs</span>
 <span class="sd">            keyword args passed directly through to the ``hash_dir`` function</span>
 
@@ -1564,19 +1573,29 @@
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="n">crypto</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">crypto</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span>
-        <span class="n">file_hashes</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">bytes_iter</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">byte_chunks</span><span class="p">(</span>
-            <span class="n">mtime</span><span class="o">=</span><span class="n">mtime</span><span class="p">,</span>
-            <span class="n">chunk_len</span><span class="o">=</span><span class="n">chunk_len</span><span class="p">,</span>
-            <span class="n">relative_to</span><span class="o">=</span><span class="n">relative_to</span><span class="p">,</span>
-            <span class="n">ignore_hidden_files</span><span class="o">=</span><span class="n">ignore_hidden_files</span><span class="p">,</span>
-            <span class="n">ignore_hidden_dirs</span><span class="o">=</span><span class="n">ignore_hidden_dirs</span><span class="p">,</span>
-        <span class="p">):</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">hash_file</span><span class="p">(</span><span class="n">item</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Iterator</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+            <span class="n">path</span><span class="p">,</span> <span class="n">bytes_iter</span> <span class="o">=</span> <span class="n">item</span>
             <span class="n">crypto_obj</span> <span class="o">=</span> <span class="n">crypto</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">bytes_str</span> <span class="ow">in</span> <span class="n">bytes_iter</span><span class="p">:</span>
                 <span class="n">crypto_obj</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">bytes_str</span><span class="p">)</span>
-            <span class="n">file_hashes</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)]</span> <span class="o">=</span> <span class="n">crypto_obj</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">file_hashes</span></div>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">crypto_obj</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+
+        <span class="c1"># Consume the generator up-front so that any errors in resolving the paths are</span>
+        <span class="c1"># raised here. The byte iterators are lazy, so no files are opened yet.</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">byte_chunks</span><span class="p">(</span>
+                <span class="n">mtime</span><span class="o">=</span><span class="n">mtime</span><span class="p">,</span>
+                <span class="n">chunk_len</span><span class="o">=</span><span class="n">chunk_len</span><span class="p">,</span>
+                <span class="n">relative_to</span><span class="o">=</span><span class="n">relative_to</span><span class="p">,</span>
+                <span class="n">ignore_hidden_files</span><span class="o">=</span><span class="n">ignore_hidden_files</span><span class="p">,</span>
+                <span class="n">ignore_hidden_dirs</span><span class="o">=</span><span class="n">ignore_hidden_dirs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">mtime</span> <span class="ow">or</span> <span class="n">max_workers</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">MIN_FILES_FOR_THREADED_HASHING</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">hash_file</span><span class="p">,</span> <span class="n">items</span><span class="p">))</span>
+        <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="n">max_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">executor</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">hash_file</span><span class="p">,</span> <span class="n">items</span><span class="p">))</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__bytes_repr__</span><span class="p">(</span>
@@ -2641,7 +2660,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=d0a01569"></script>
+</div><script src="../../../_static/documentation_options.js?v=332e2b7c"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
