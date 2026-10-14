@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.fileset - FileFormats v0.19.6</title>
+        <title>fileformats.core.fileset - FileFormats v0.20.0</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.19.6</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.20.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.19.6</span>
+  <span class="sidebar-brand-text">FileFormats v0.20.0</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -1346,16 +1346,54 @@
             <span class="p">}</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_formats_by_name</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">all_file_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""Paths of all files within the fileset"""</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">all_file_paths</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ignore_hidden_files</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">ignore_hidden_dirs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Paths of all files within the fileset, including those nested within</span>
+<span class="sd">        directories</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ignore_hidden_files : bool</span>
+<span class="sd">            whether to ignore hidden files within nested directories (i.e. those</span>
+<span class="sd">            starting with '.')</span>
+<span class="sd">        ignore_hidden_dirs : bool</span>
+<span class="sd">            whether to ignore hidden directories within nested directories (i.e. those</span>
+<span class="sd">            starting with '.'), along with everything beneath them</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        file_paths : list[Path]</span>
+<span class="sd">            the paths of the files within the fileset, in sorted order. Files that are</span>
+<span class="sd">            both listed explicitly and nested within a listed directory are only</span>
+<span class="sd">            included once</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        FileNotFoundError</span>
+<span class="sd">            if a symbolic link within a nested directory is broken</span>
+<span class="sd">        """</span>
+        <span class="n">file_paths</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Set</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">fspath</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fspaths</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">fspath</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
-                <span class="k">yield</span> <span class="n">fspath</span>
+                <span class="n">file_paths</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fspath</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">for</span> <span class="n">dpath</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">file_paths</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">fspath</span><span class="p">):</span>
-                    <span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">file_paths</span><span class="p">:</span>
-                        <span class="k">yield</span> <span class="n">Path</span><span class="p">(</span><span class="n">dpath</span><span class="p">)</span> <span class="o">/</span> <span class="n">file_path</span>
+                <span class="k">for</span> <span class="n">dpath</span><span class="p">,</span> <span class="n">dirnames</span><span class="p">,</span> <span class="n">filenames</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">fspath</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">ignore_hidden_dirs</span><span class="p">:</span>
+                        <span class="c1"># Prune in-place so the walk doesn't descend into them</span>
+                        <span class="n">dirnames</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dirnames</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">d</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"."</span><span class="p">)]</span>
+                    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">ignore_hidden_files</span> <span class="ow">and</span> <span class="n">filename</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"."</span><span class="p">):</span>
+                            <span class="k">continue</span>
+                        <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">dpath</span><span class="p">)</span> <span class="o">/</span> <span class="n">filename</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">file_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+                                <span class="sa">f</span><span class="s2">"Broken symbolic link '</span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">' found within </span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2">"</span>
+                            <span class="p">)</span>
+                        <span class="n">file_paths</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">file_paths</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">byte_chunks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1367,6 +1405,8 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Generator</span><span class="p">[</span><span class="n">ty</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Iterator</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]],</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Yields relative paths for all files within the file-set along with iterators</span>
 <span class="sd">        over their byte-contents. To be used when generating hashes for the file set.</span>
+
+<span class="sd">        Files are yielded once each, in the sorted order of `all_file_paths`.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1443,42 +1483,15 @@
 
             <span class="k">def</span><span class="w"> </span><span class="nf">chunk_file</span><span class="p">(</span><span class="n">fspath</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Iterator</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]:</span>
 <span class="w">                </span><span class="sd">"""Yields the contents of the file in byte chunks"""</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">fspath</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
-                    <span class="k">assert</span> <span class="n">fspath</span><span class="o">.</span><span class="n">is_symlink</span><span class="p">()</span>  <span class="c1"># broken symlink</span>
-                    <span class="k">yield</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\x00</span><span class="s2">"</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fspath</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
-                        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="nb">iter</span><span class="p">(</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">,</span> <span class="n">chunk_len</span><span class="p">),</span> <span class="sa">b</span><span class="s2">""</span><span class="p">):</span>
-                            <span class="k">yield</span> <span class="n">chunk</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fspath</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="nb">iter</span><span class="p">(</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">,</span> <span class="n">chunk_len</span><span class="p">),</span> <span class="sa">b</span><span class="s2">""</span><span class="p">):</span>
+                        <span class="k">yield</span> <span class="n">chunk</span>
 
-        <span class="k">def</span><span class="w"> </span><span class="nf">chunk_dir</span><span class="p">(</span><span class="n">fspath</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Iterator</span><span class="p">[</span><span class="n">ty</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Iterator</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]]]:</span>
-            <span class="n">fspath</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">fspath</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">dpath_str</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">filenames</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">fspath</span><span class="p">)):</span>
-                <span class="c1"># Sort in-place to guarantee order.</span>
-                <span class="n">filenames</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
-                <span class="n">dpath</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">dpath_str</span><span class="p">)</span>
-                <span class="k">if</span> <span class="p">(</span>
-                    <span class="n">ignore_hidden_dirs</span>
-                    <span class="ow">and</span> <span class="n">dpath</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
-                    <span class="ow">and</span> <span class="n">dpath</span> <span class="o">!=</span> <span class="n">fspath</span>
-                <span class="p">):</span>
-                    <span class="k">continue</span>
-                <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="n">ignore_hidden_files</span> <span class="ow">and</span> <span class="n">filename</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"."</span><span class="p">):</span>
-                        <span class="k">continue</span>
-                    <span class="k">yield</span> <span class="p">(</span>
-                        <span class="n">relative_path_str</span><span class="p">(</span><span class="n">dpath</span> <span class="o">/</span> <span class="n">filename</span><span class="p">),</span>
-                        <span class="n">chunk_file</span><span class="p">(</span><span class="n">dpath</span> <span class="o">/</span> <span class="n">filename</span><span class="p">),</span>
-                    <span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">fspath</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span>
-            <span class="p">((</span><span class="n">relative_path_str</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fspaths</span><span class="p">),</span>
-            <span class="n">key</span><span class="o">=</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+        <span class="k">for</span> <span class="n">fspath</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_file_paths</span><span class="p">(</span>
+            <span class="n">ignore_hidden_files</span><span class="o">=</span><span class="n">ignore_hidden_files</span><span class="p">,</span>
+            <span class="n">ignore_hidden_dirs</span><span class="o">=</span><span class="n">ignore_hidden_dirs</span><span class="p">,</span>
         <span class="p">):</span>
-            <span class="k">if</span> <span class="n">fspath</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
-                <span class="k">yield from</span> <span class="n">chunk_dir</span><span class="p">(</span><span class="n">fspath</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">yield</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">chunk_file</span><span class="p">(</span><span class="n">fspath</span><span class="p">))</span>
+            <span class="k">yield</span> <span class="p">(</span><span class="n">relative_path_str</span><span class="p">(</span><span class="n">fspath</span><span class="p">),</span> <span class="n">chunk_file</span><span class="p">(</span><span class="n">fspath</span><span class="p">))</span>
 
 <div class="viewcode-block" id="FileSet.hash">
 <a class="viewcode-back" href="../../../api.html#fileformats.core.FileSet.hash">[docs]</a>
@@ -1800,9 +1813,10 @@
         <span class="n">decomposed_by</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">FileSet</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">fileset</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">nested_filesets</span><span class="p">():</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fileset</span><span class="p">,</span> <span class="n">File</span><span class="p">):</span>
-                <span class="c1"># Skip files that are nested within other paths (e.g. directories) of</span>
-                <span class="c1"># the file-set, as they will be handled along with their parent</span>
-                <span class="k">if</span> <span class="n">is_subpath</span><span class="p">(</span><span class="n">fileset</span><span class="o">.</span><span class="n">fspath</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fspaths</span><span class="p">):</span>
+                <span class="c1"># Skip files that are nested within other included paths (e.g.</span>
+                <span class="c1"># directories) of the file-set, as they will be handled along with</span>
+                <span class="c1"># their parent</span>
+                <span class="k">if</span> <span class="n">is_subpath</span><span class="p">(</span><span class="n">fileset</span><span class="o">.</span><span class="n">fspath</span><span class="p">,</span> <span class="n">to_include</span><span class="p">):</span>
                     <span class="n">implicit</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">fileset</span><span class="o">.</span><span class="n">fspath</span><span class="p">)</span>
                     <span class="k">continue</span>
                 <span class="c1"># Skip files that aren't to be included (e.g. not required)</span>
@@ -2627,7 +2641,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=8e0b66ef"></script>
+</div><script src="../../../_static/documentation_options.js?v=d0a01569"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
