@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.fileset - FileFormats v0.21.1</title>
+        <title>fileformats.core.fileset - FileFormats v0.22.0</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.21.1</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.22.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.21.1</span>
+  <span class="sidebar-brand-text">FileFormats v0.22.0</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -842,21 +842,102 @@
                     <span class="n">required</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">required</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">nested_filesets</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="s2">"FileSet"</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""Returns all nested filesets that are required for the format</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">nested_filesets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recursive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="s2">"FileSet"</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Returns all nested filesets that are required for the format, i.e. those</span>
+<span class="sd">        returned by its validated properties, including those within dicts and</span>
+<span class="sd">        sequences returned by them</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        recursive : bool, optional</span>
+<span class="sd">            whether to also include the filesets nested within the nested filesets, by</span>
+<span class="sd">            default True</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        ------</span>
 <span class="sd">        fileset : list[FileSet]</span>
 <span class="sd">            a fileset that is nested within the broader fileset</span>
 <span class="sd">        """</span>
-        <span class="n">nested</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">nested</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">FileSet</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">collect</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">FileSet</span><span class="p">):</span>
+                <span class="n">nested</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">recursive</span><span class="p">:</span>
+                    <span class="n">nested</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">nested_filesets</span><span class="p">())</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                    <span class="n">collect</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">)):</span>
+                <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+                    <span class="n">collect</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
         <span class="k">for</span> <span class="n">prop_name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">validated_properties</span><span class="p">()):</span>
-            <span class="n">prop</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop_name</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="n">FileSet</span><span class="p">):</span>
-                <span class="n">nested</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prop</span><span class="p">)</span>
-                <span class="n">nested</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">prop</span><span class="o">.</span><span class="n">nested_filesets</span><span class="p">())</span>
+            <span class="n">collect</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop_name</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">nested</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">map_nested</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">out_dir</span><span class="p">:</span> <span class="s2">"os.PathLike[str] | str"</span><span class="p">,</span>
+        <span class="n">func</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="s2">"FileSet"</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">ty</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="s2">"FileSet"</span><span class="p">]],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Writes a copy of the fileset to `out_dir`, in which the filesets nested</span>
+<span class="sd">        directly within it (see `nested_filesets`) are written by `func` and its</span>
+<span class="sd">        remaining files are copied unchanged, keeping the same layout relative to their</span>
+<span class="sd">        common parent directory. For example, to write converted or otherwise modified</span>
+<span class="sd">        versions of the nested filesets.</span>
+
+<span class="sd">        Nested filesets that point outside of the fileset (i.e. aren't made up of its</span>
+<span class="sd">        paths) aren't part of it, so are left out of the copy, as they are by `copy`</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        out_dir : PathLike[str] | str</span>
+<span class="sd">            the directory to write the copy to</span>
+<span class="sd">        func : Callable[[FileSet, Path], FileSet | None]</span>
+<span class="sd">            called with each nested fileset and the directory it should be written to,</span>
+<span class="sd">            to be in the same position relative to the copy as the nested fileset is</span>
+<span class="sd">            to this fileset. It should write its counterpart there with the same</span>
+<span class="sd">            layout (e.g. names, so that the copy is still of this fileset's type) and</span>
+<span class="sd">            return it, or return None to have the nested fileset copied unchanged along</span>
+<span class="sd">            with the rest of the files. Nested filesets that are entirely within ones</span>
+<span class="sd">            already written by `func` aren't passed to it.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Self</span>
+<span class="sd">            the copy of the fileset</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            if a nested fileset is made up of paths both within and outside the fileset</span>
+<span class="sd">        """</span>
+        <span class="n">out_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">out_dir</span><span class="p">)</span>
+        <span class="n">src_root</span> <span class="o">=</span> <span class="n">_root_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">own_paths</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_file_paths</span><span class="p">())</span>
+        <span class="n">written</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Set</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">nested</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nested_filesets</span><span class="p">(</span><span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+            <span class="n">nested_paths</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">nested</span><span class="o">.</span><span class="n">all_file_paths</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">outside</span> <span class="o">:=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">nested_paths</span> <span class="o">-</span> <span class="n">own_paths</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">outside</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">nested_paths</span><span class="p">):</span>
+                    <span class="k">continue</span>  <span class="c1"># not part of the fileset</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">nested</span><span class="si">}</span><span class="s2"> is nested within </span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2">, but is made up of paths both "</span>
+                    <span class="sa">f</span><span class="s2">"within it and outside it, </span><span class="si">{</span><span class="n">outside</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">nested_paths</span> <span class="o">&lt;=</span> <span class="n">written</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">dest_dir</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="n">_root_dir</span><span class="p">(</span><span class="n">nested</span><span class="p">)</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">src_root</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">func</span><span class="p">(</span><span class="n">nested</span><span class="p">,</span> <span class="n">dest_dir</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">written</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">nested_paths</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">own_paths</span> <span class="o">-</span> <span class="n">written</span><span class="p">:</span>
+            <span class="n">dest</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="n">path</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">src_root</span><span class="p">)</span>
+            <span class="n">dest</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">copy2</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+        <span class="c1"># Reinstantiating the type checks that `func` preserved the layout it requires</span>
+        <span class="c1"># (e.g. didn't rename files it looks for)</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)([</span><span class="n">out_dir</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">src_root</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fspaths</span><span class="p">])</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">trim_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Trims paths in fspaths to only those that are "required" by the format class</span>
@@ -2628,6 +2709,12 @@
     <span class="n">_required_props</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">ty</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">_valid_class</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_root_dir</span><span class="p">(</span><span class="n">fileset</span><span class="p">:</span> <span class="n">FileSet</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The directory containing all of the fileset's paths (the parent of a directory</span>
+<span class="sd">    fileset rather than the directory itself)"""</span>
+    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">commonpath</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">parent</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">fileset</span><span class="o">.</span><span class="n">fspaths</span><span class="p">]))</span>
 </pre></div>
         </article>
       </div>
@@ -2660,7 +2747,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=332e2b7c"></script>
+</div><script src="../../../_static/documentation_options.js?v=29394077"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
