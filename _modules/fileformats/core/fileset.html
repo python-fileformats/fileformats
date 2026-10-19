@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.fileset - FileFormats v0.22.0</title>
+        <title>fileformats.core.fileset - FileFormats v0.22.1</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.22.0</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.22.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.22.0</span>
+  <span class="sidebar-brand-text">FileFormats v0.22.1</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -1283,7 +1283,16 @@
         <span class="k">for</span> <span class="n">subcls</span> <span class="ow">in</span> <span class="n">subclasses</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">subcls</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
                 <span class="n">subcls</span><span class="o">.</span><span class="n">_import_extras_module</span><span class="p">()</span>
-                <span class="n">datatypes</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">subcls</span><span class="o">.</span><span class="n">get_converters_dict</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                <span class="c1"># Skip the source types of generic converters (e.g. `SetOf[T]` for</span>
+                <span class="c1"># `SetOf[T]` -&gt; `DirectoryOf[T]`), which can't be used as concrete</span>
+                <span class="c1"># datatypes, and are added below with their wildcards resolved from the</span>
+                <span class="c1"># classifiers of this type where possible</span>
+                <span class="n">datatypes</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                    <span class="n">t</span>
+                    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">subcls</span><span class="o">.</span><span class="n">get_converters_dict</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">_has_wildcard_classifiers</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                <span class="p">)</span>
+        <span class="n">datatypes</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_resolved_wildcard_sources</span><span class="p">())</span>
         <span class="n">marker</span> <span class="o">=</span> <span class="n">ConvertibleToMarker</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">datatypes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">ty</span><span class="o">.</span><span class="n">Annotated</span><span class="p">[</span><span class="bp">cls</span><span class="p">,</span> <span class="n">marker</span><span class="p">]</span>
@@ -1307,6 +1316,79 @@
             <span class="n">operator</span><span class="o">.</span><span class="n">or_</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">concrete_datatypes</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">union_sort_key</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">ty</span><span class="o">.</span><span class="n">Annotated</span><span class="p">[</span><span class="n">union</span><span class="p">,</span> <span class="n">marker</span><span class="p">]</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_resolved_wildcard_sources</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""The source types of the generic converters that can convert to this type,</span>
+<span class="sd">        with their wildcard classifiers resolved from this type, e.g. `Zip[TextFile]`</span>
+<span class="sd">        for `TextFile` (from `Zip[Compressed]` -&gt; `Compressed`) and `SetOf[TextFile]`</span>
+<span class="sd">        for `DirectoryOf[TextFile]` (from `SetOf[T]` -&gt; `DirectoryOf[T]`). Only those</span>
+<span class="sd">        that a converter can actually be found from with `get_converter` are returned.</span>
+<span class="sd">        """</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.converter_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">SubtypeVar</span>
+
+        <span class="k">if</span> <span class="n">_has_wildcard_classifiers</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[]</span>  <span class="c1"># nothing to resolve the wildcards from</span>
+        <span class="c1"># The extras modules of generically classifiable types (e.g. archives) register</span>
+        <span class="c1"># generic converters to and from them for any type (e.g. `Zip[X]` -&gt; `X`), so</span>
+        <span class="c1"># import them, so the result doesn't depend on which happen to be imported</span>
+        <span class="k">for</span> <span class="n">generic_type</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">DataType</span><span class="o">.</span><span class="n">generically_classifiable_by_name</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+            <span class="n">generic_type</span><span class="o">.</span><span class="n">_import_extras_module</span><span class="p">()</span>  <span class="c1"># type: ignore[attr-defined]</span>
+
+        <span class="c1"># The source types of generic converters, and the types their wildcards resolve</span>
+        <span class="c1"># to for this type</span>
+        <span class="n">candidates</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">List</span><span class="p">[</span>
+            <span class="n">ty</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">],</span> <span class="n">ty</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">],</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">]]]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Converters from generic types to the types they are classified by, e.g.</span>
+        <span class="c1"># `Zip[Compressed]` -&gt; `Compressed`</span>
+        <span class="k">for</span> <span class="n">extracted_from</span> <span class="ow">in</span> <span class="n">SubtypeVar</span><span class="o">.</span><span class="n">converters</span><span class="p">:</span>
+            <span class="p">(</span><span class="n">wildcard</span><span class="p">,)</span> <span class="o">=</span> <span class="n">extracted_from</span><span class="o">.</span><span class="n">wildcard_classifiers</span><span class="p">()</span>  <span class="c1"># type: ignore[attr-defined]</span>
+            <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">wildcard</span><span class="o">.</span><span class="n">bound</span><span class="p">):</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                <span class="n">candidates</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">extracted_from</span><span class="p">,</span> <span class="p">{</span><span class="n">wildcard</span><span class="p">:</span> <span class="bp">cls</span><span class="p">}))</span>
+        <span class="c1"># Converters between generic types, or to a generic type, registered on the</span>
+        <span class="c1"># unclassified type, e.g. `SetOf[T]` -&gt; `DirectoryOf[T]` and</span>
+        <span class="c1"># `Compressed` -&gt; `Zip[Compressed]`, where the wildcard is resolved from the</span>
+        <span class="c1"># classifier of this type in place of the target's wildcard</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s2">"is_classified"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">converters_dict</span> <span class="o">=</span> <span class="n">FileSet</span><span class="o">.</span><span class="n">get_converters_dict</span><span class="p">(</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">unclassified</span>  <span class="c1"># type: ignore[attr-defined]</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">source_template</span><span class="p">,</span> <span class="n">generic_converter</span> <span class="ow">in</span> <span class="n">converters_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">generic_converter</span><span class="o">.</span><span class="n">classifiers</span><span class="p">:</span>
+                    <span class="k">continue</span>  <span class="c1"># not a generic converter</span>
+                <span class="n">wildcards</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">wildcard_classifiers</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                    <span class="n">generic_converter</span><span class="o">.</span><span class="n">classifiers</span>
+                <span class="p">)</span>
+                <span class="n">non_wildcards</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">non_wildcard_classifiers</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                    <span class="n">generic_converter</span><span class="o">.</span><span class="n">classifiers</span>
+                <span class="p">)</span>
+                <span class="n">actual</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">classifiers</span><span class="p">)</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                    <span class="n">non_wildcards</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">wildcards</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span>
+                    <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span>
+                    <span class="ow">or</span> <span class="ow">not</span> <span class="n">non_wildcards</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">classifiers</span><span class="p">)</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                <span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="n">candidates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">source_template</span><span class="p">,</span> <span class="p">{</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">wildcards</span><span class="p">)):</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">actual</span><span class="p">))})</span>
+                <span class="p">)</span>
+        <span class="n">resolved</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">unresolved</span><span class="p">,</span> <span class="n">mapping</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Resolving the wildcards can produce an invalid type (e.g. one with</span>
+                <span class="c1"># classifiers that clash), in which case there is nothing to add</span>
+                <span class="n">candidate</span> <span class="o">=</span> <span class="n">_resolve_wildcards</span><span class="p">(</span><span class="n">unresolved</span><span class="p">,</span> <span class="n">mapping</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">candidate</span> <span class="ow">is</span> <span class="bp">cls</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">found</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_converter</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">FormatConversionError</span><span class="p">,</span> <span class="n">FormatDefinitionError</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">found</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># i.e. not just a subclass of this type</span>
+                <span class="n">resolved</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">resolved</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_converter_defs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">source_format</span><span class="p">:</span> <span class="nb">type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="s2">"Converter"</span><span class="p">]:</span>
@@ -2715,6 +2797,34 @@
 <span class="w">    </span><span class="sd">"""The directory containing all of the fileset's paths (the parent of a directory</span>
 <span class="sd">    fileset rather than the directory itself)"""</span>
     <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">commonpath</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">parent</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">fileset</span><span class="o">.</span><span class="n">fspaths</span><span class="p">]))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_has_wildcard_classifiers</span><span class="p">(</span><span class="n">datatype</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether the type is classified by wildcards (e.g. `SetOf[T]`), i.e. a template</span>
+<span class="sd">    for the source or target types of generic converters"""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">datatype</span><span class="o">.</span><span class="n">wildcard_classifiers</span><span class="p">())</span>  <span class="c1"># type: ignore[attr-defined]</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolve_wildcards</span><span class="p">(</span>
+    <span class="n">template</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">],</span>
+    <span class="n">mapping</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">],</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">]],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ty</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">DataType</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Substitute the wildcard classifiers of a generic converter's source type with the</span>
+<span class="sd">    types they resolve to, e.g. `SetOf[T]` with {T: TextFile} -&gt; `SetOf[TextFile]`, or</span>
+<span class="sd">    the type itself if the source type is the wildcard, e.g. `Compressed` -&gt; `TextFile`</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.converter_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">SubtypeVar</span>
+
+    <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">SubtypeVar</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">mapping</span><span class="p">[</span><span class="n">template</span><span class="p">]</span>
+    <span class="n">classifiers</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+        <span class="n">mapping</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">classifiers</span>  <span class="c1"># type: ignore[attr-defined]</span>
+    <span class="p">)</span>
+    <span class="n">unclassified</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">unclassified</span>  <span class="c1"># type: ignore[attr-defined]</span>
+    <span class="k">return</span> <span class="n">unclassified</span><span class="p">[</span><span class="n">classifiers</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">classifiers</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">classifiers</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>  <span class="c1"># type: ignore[no-any-return]</span>
 </pre></div>
         </article>
       </div>
@@ -2747,7 +2857,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=29394077"></script>
+</div><script src="../../../_static/documentation_options.js?v=b67bd4ed"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
