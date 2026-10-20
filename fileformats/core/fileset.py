@@ -1260,7 +1260,8 @@ class FileSet(DataType):
         file_paths : list[Path]
             the paths of the files within the fileset, in sorted order. Files that are
             both listed explicitly and nested within a listed directory are only
-            included once
+            included once. Listed paths that aren't directories are included whether
+            they exist or not
 
         Raises
         ------
@@ -1269,7 +1270,9 @@ class FileSet(DataType):
         """
         file_paths: ty.Set[Path] = set()
         for fspath in self.fspaths:
-            if fspath.is_file():
+            if not fspath.is_dir():
+                # Included even if it doesn't exist (e.g. in mocked filesets), so the
+                # keys yielded by `byte_chunks` don't change if it is created later
                 file_paths.add(fspath)
             else:
                 for dpath, dirnames, filenames in os.walk(fspath):
