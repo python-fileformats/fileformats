@@ -741,6 +741,16 @@ def test_all_file_paths_broken_symlink(work_dir: Path):
         fileset.hash_files()
 
 
+def test_byte_chunks_keys_of_mock_unchanged_by_creation(work_dir: Path):
+    """The keys of a mocked fileset don't depend on whether its files exist, so its
+    hash doesn't change if they are created (e.g. by the task it is passed to)"""
+    fspath = work_dir / "new.mario"
+    mock = FileSet.mock(fspath)
+    keys = [k for k, _ in mock.byte_chunks()]
+    fspath.touch()
+    assert [k for k, _ in mock.byte_chunks()] == keys == ["."]
+
+
 def test_byte_chunks_matches_all_file_paths(work_dir: Path):
     sub_dir = work_dir / "sub"
     below_hidden_dir = sub_dir / ".hidden" / "below"
