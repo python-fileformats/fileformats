@@ -1,4 +1,5 @@
 import os.path
+import shutil
 import tarfile
 import tempfile
 import typing as ty
@@ -150,7 +151,12 @@ def create_zip(
     allowZip64: bool = True,
     compresslevel: ty.Optional[int] = None,
     strict_timestamps: bool = True,
+    reproducible: bool = False,
 ) -> Zip:
+    """Create a ZIP archive. With ``reproducible=True``, sort entries and use
+    fixed timestamps and permissions so unchanged contents produce identical
+    bytes with the same compression settings and implementation.
+    """
 
     fspaths = sorted(in_file.fspaths)
 
@@ -185,16 +191,49 @@ def create_zip(
         ) as zfile,
         set_cwd(base_dir),
     ):
+
+        def add_entry(path: PathType) -> None:
+            arcname = relative_path(path, base_dir)
+            if not reproducible:
+                zfile.write(arcname)
+                return
+            path = Path(path)
+            is_dir = path.is_dir()
+            info = zipfile.ZipInfo(
+                arcname.replace(os.sep, "/") + ("/" if is_dir else ""),
+                date_time=(1980, 1, 1, 0, 0, 0),
+            )
+            info.create_system = 3
+            # A directory entry has no data: stored, as ZipFile.write does
+            info.compress_type = zipfile.ZIP_STORED if is_dir else compression_flag
+            info.external_attr = (0o40755 << 16) | 0x10 if is_dir else 0o100644 << 16
+            if is_dir:
+                zfile.writestr(info, b"")
+            else:
+                # Set the size before open so large files get ZIP64 headers.
+                info.file_size = path.stat().st_size
+                # ZipFile.open has no compresslevel argument; it reads the level
+                # from the entry (public name from Python 3.13)
+                if hasattr(info, "compress_level"):
+                    info.compress_level = compresslevel
+                else:
+                    setattr(info, "_compresslevel", compresslevel)
+                with path.open("rb") as source, zfile.open(info, "w") as target:
+                    shutil.copyfileobj(source, target, length=1024 * 1024)
+
         for fspath in fspaths:
             fspath = Path(fspath)
             if fspath.is_dir():
-                for dpath, _, files in os.walk(fspath):
-                    zfile.write(relative_path(dpath, base_dir))
+                for dpath, dirs, files in os.walk(fspath):
+                    if reproducible:
+                        dirs.sort()
+                        files.sort()
+                    add_entry(dpath)
                     for fname in files:
                         fpath = os.path.join(dpath, fname)
-                        zfile.write(relative_path(fpath, base_dir))
+                        add_entry(fpath)
             else:
-                zfile.write(relative_path(fspath, base_dir))
+                add_entry(fspath)
     return Zip(out_file)
 
 
