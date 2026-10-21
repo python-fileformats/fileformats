@@ -10,10 +10,6 @@ try:
     import pydicom.tag
 except ImportError:
     pydicom = None  # type: ignore[assignment]
-try:
-    import medimages4tests.dummy.dicom.mri.t1w.siemens.skyra.syngo_d13c
-except ImportError:
-    medimages4tests = None  # type: ignore[assignment]
 
 if sys.version_info <= (3, 11):
     from typing_extensions import TypeAlias
@@ -46,12 +42,14 @@ def dicom_generate_sample_data(
     dicom: Dicom,
     generator: SampleFileGenerator,
 ) -> ty.List[Path]:
-    check_optional_dependency(medimages4tests)
-    return next(
-        medimages4tests.dummy.dicom.mri.t1w.siemens.skyra.syngo_d13c.get_image(
-            out_dir=generator.dest_dir
-        ).iterdir()
-    )
+    # Imported lazily as medimages4tests is only needed for generating sample data and
+    # has side-effects on import (e.g. openneuro creates a config dir)
+    try:
+        from medimages4tests.dummy.dicom.mri.t1w.siemens.skyra import syngo_d13c
+    except ImportError:
+        syngo_d13c = None  # type: ignore[assignment]
+    check_optional_dependency(syngo_d13c)
+    return next(syngo_d13c.get_image(out_dir=generator.dest_dir).iterdir())
 
 
 @extra_implementation(FileSet.load)
