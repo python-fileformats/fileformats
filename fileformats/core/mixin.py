@@ -3,7 +3,6 @@ import logging
 import re
 import typing as ty
 
-from .archive import archive_safe
 from pathlib import Path
 
 import fileformats.core
@@ -18,6 +17,7 @@ from .exceptions import (
     FormatMismatchError,
     FormatRecognitionError,
 )
+from .fileset import indirect_safe
 from .identification import to_mime_format_name
 from .utils import get_optional_type
 
@@ -85,7 +85,7 @@ class WithMagicNumber:
                 f"{ref_magic!r}"
             )
 
-    @archive_safe
+    @indirect_safe
     @validated_property
     def _check_magic_number(self) -> None:
         with self.open("rb" if getattr(self, "binary", True) else "r") as fh:

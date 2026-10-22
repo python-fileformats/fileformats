@@ -9,9 +9,10 @@ import zipfile
 from pathlib import Path
 
 from fileformats.core import FileSet
-from fileformats.core.archive import ZipPath, archive_safe, zip_members
+from fileformats.core.archive import ZipPath, zip_members
 from fileformats.core.decorators import mtime_cached_property, validated_property
 from fileformats.core.exceptions import FormatMismatchError
+from fileformats.core.fileset import indirect_safe
 from fileformats.core.mixin import WithClassifier, WithMagicNumber
 from fileformats.generic import BinaryFile
 
@@ -131,7 +132,7 @@ class BaseBzip(WithMagicNumber, Compressed):
     magic_number = "425a"
     codec = _BZ2File
 
-    @archive_safe
+    @indirect_safe
     @validated_property
     def validate_outer_magic(self):
         with self.open_raw('rb') as fh:
@@ -148,7 +149,7 @@ class BaseGzip(WithMagicNumber, Compressed):
     magic_number = "1F8B08"
     codec = _GzipFile
 
-    @archive_safe
+    @indirect_safe
     @validated_property
     def validate_outer_magic(self):
         with self.open_raw('rb') as fh:
@@ -165,7 +166,7 @@ class BaseXz(WithMagicNumber, Compressed):
     magic_number = "FD 37 7A 58 5A 00"
     codec = _LZMAFile
 
-    @archive_safe
+    @indirect_safe
     @validated_property
     def validate_outer_magic(self):
         with self.open_raw('rb') as fh:
@@ -202,14 +203,15 @@ class Zip(WithArchiveClassifiers, BaseZip):
 
     @property
     def root(self) -> ZipPath:
-        "Traversable path to the root of the archive"
-        return ZipPath(self.fspath)
+        """ReadablePath path to the root of the archive"""
+        return ZipPath(zipfile_obj=self.fspath)
 
     @mtime_cached_property
     def archived(self) -> FileSet:
         """The archived file-set, viewed in place inside the archive"""
         archived_type = self.archived_type or FileSet
-        return archived_type(*self._archived_fspaths(archived_type))
+        data = self._archived_fspaths(archived_type)
+        return archived_type(*data)
 
     @validated_property
     def _check_archived(self) -> None:

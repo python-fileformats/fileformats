@@ -1,11 +1,11 @@
 import sys
 import typing as ty
 
-from fileformats.core.archive import archive_safe
 from pathlib import Path
 
 from fileformats.application import Dicom
 from fileformats.core import FileSet, SampleFileGenerator, extra_implementation
+from fileformats.core.fileset import indirect_safe
 from fileformats.extras.core import check_optional_dependency
 
 try:
@@ -31,7 +31,7 @@ TagListType: TypeAlias = ty.Union[
 
 
 @extra_implementation(FileSet.read_metadata)
-@archive_safe
+@indirect_safe
 def dicom_read_metadata(
     dicom: Dicom,
     metadata_keys: ty.Optional[TagListType] = None,

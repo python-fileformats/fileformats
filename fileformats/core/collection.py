@@ -3,9 +3,9 @@ from abc import ABCMeta, abstractmethod
 from pathlib import Path
 
 from fileformats.core import FileSet, mtime_cached_property, validated_property
-from fileformats.core.archive import archive_safe
 from fileformats.core.decorators import classproperty
 from fileformats.core.exceptions import FormatMismatchError
+from fileformats.core.fileset import indirect_safe
 from fileformats.core.utils import get_optional_type
 
 
@@ -38,7 +38,7 @@ class TypedCollection(FileSet, metaclass=ABCMeta):
     #     """The latest modification time of all files in the set"""
     #     return max(c.last_modified for c in self.contents)
 
-    @archive_safe
+    @indirect_safe
     @validated_property
     def _validate_required_content_types(self) -> None:
         not_found = set(self.required_content_types)

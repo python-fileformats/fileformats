@@ -3,7 +3,7 @@ import sys
 import typing as ty
 from pathlib import Path
 
-from fileformats.core.archive import archive_safe
+from fileformats.core.fileset import indirect_safe
 from fileformats.core.decorators import classproperty, validated_property
 from fileformats.core.exceptions import FormatMismatchError
 from fileformats.core.fileset import FileSet
@@ -12,7 +12,7 @@ from fileformats.core.fileset import FileSet
 class FsObject(FileSet, os.PathLike):  # type: ignore
     "Generic file-system object, can be either a file or a directory"
 
-    @archive_safe
+    @indirect_safe
     @validated_property
     def fspath(self) -> Path:
         if len(self.fspaths) > 1:

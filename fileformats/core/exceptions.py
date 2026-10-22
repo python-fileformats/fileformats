@@ -2,6 +2,16 @@ class FileFormatsError(Exception):
     "Base exception class"
 
 
+class IndirectAccessError(FileFormatsError):
+    """Raised when an operation that needs a real file-system path is attempted on a
+    file-set that uses an indirect path"""
+
+
+class ArchiveAccessError(IndirectAccessError):
+    """Raised when an operation that needs a real file-system path is attempted on a
+    file-set that lives inside an archive"""
+
+
 class FormatDefinitionError(FileFormatsError):
     "When the file-formats class hasn't been properly defined"
 

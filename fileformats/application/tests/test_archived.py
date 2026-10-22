@@ -7,8 +7,9 @@ import pytest
 
 from fileformats.application import Zip
 from fileformats.core import FileSet, extra_implementation
-from fileformats.core.archive import ArchiveAccessError, ZipPath, archive_safe
+from fileformats.core.archive import ArchiveAccessError, ZipPath
 from fileformats.core.exceptions import FormatMismatchError
+from fileformats.core.fileset import indirect_safe
 from fileformats.generic import Directory
 from fileformats.image import Png
 
@@ -75,7 +76,7 @@ def test_extras_gated_by_archive_safe(png_zip: Path, tmp_path: Path) -> None:
         return {}
 
     @extra_implementation(FileSet.read_metadata)
-    @archive_safe
+    @indirect_safe
     def _safe(fs: _SafePng, **kwargs: ty.Any) -> ty.Mapping[str, ty.Any]:
         with fs.open() as f:
             return {"magic": f.read(len(PNG_MAGIC))}

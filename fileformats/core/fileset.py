@@ -1,3 +1,4 @@
+import abc
 import errno
 import functools
 import hashlib
@@ -6,6 +7,7 @@ import itertools
 import logging
 import operator
 import os
+import posixpath
 import shutil
 import struct
 import sys
@@ -23,6 +25,8 @@ if sys.version_info >= (3, 10):
 else:
     from typing_extensions import TypeAlias
 
+from pathlib_abc import ReadablePath
+
 from fileformats.core.converter_helpers import SubtypeVar
 from fileformats.core.typing import Self
 from fileformats.core.utils import _excluded_subpackages
@@ -38,6 +42,7 @@ from .exceptions import (
     FormatConversionError,
     FormatDefinitionError,
     FormatMismatchError,
+    IndirectAccessError,
     UnconstrainedExtensionException,
     UnsatisfiableCopyModeError,
 )
@@ -67,9 +72,106 @@ FileSetPrimitive: TypeAlias = ty.Union[os.PathLike[str], ty.Sequence[os.PathLike
 FILE_CHUNK_LEN_DEFAULT = 8192
 
 
+INDIRECT_SAFE_FLAG = "__fileformats_indirect_safe__"
+
+
 logger = logging.getLogger("fileformats")
 
 T = ty.TypeVar("T")
+
+
+class IndirectPath(ReadablePath, metaclass=abc.ABCMeta):
+    """Base class for indirect Paths. These could be paths that point inside of an archive or paths that are point to
+     a place on a remote server SSH. The paths are reable and usable, but need to implement a number of methods to be
+     usable like a regular Path. This is based on the pathlib-abc package which defined the abstract base classes:
+     https://pathlib-abc.readthedocs.io/en/latest/api.html#abstract-base-classes
+
+     From JoinablePath (see https://pathlib-abc.readthedocs.io/en/latest/api.html#pathlib_abc.JoinablePath)
+     * __vfspath__()
+     * with_segments(*pathsegments)
+
+     From ReadablePath (see https://pathlib-abc.readthedocs.io/en/latest/api.html#pathlib_abc.ReadablePath)
+     * info   (a property)
+     * __open_reader__()
+     * iterdir()
+     * readlink()
+
+     Additionally, we added a method:
+     * _key() -> tuple(str, ...)
+     * mtime_ns() -> int   # which returns the stat().st_mtime_ns result we need for some checks
+
+     """
+    # By default, we use a posixpath for parsing separators etc
+    parser = posixpath
+
+    def __fspath__(self) -> str:
+        raise IndirectAccessError(
+            f"'{self}' is an IndirectPath and has no file-system "
+            "path. Either use only indirect-safe operations (e.g. `.open()`) or "
+            "extract/convert the path to a local Path first."
+        )
+
+    def __repr__(self) -> str:
+        """ Default representation, might need some work for subclasses to give more information """
+        return f"{type(self).__name__}({', '.join(repr(x) for x in self._key())})"
+
+    # Add shortcuts to the path.info.exists etc
+    def exists(self, *, follow_symlinks: bool = True) -> bool:
+            return self.info.exists(follow_symlinks=follow_symlinks)
+
+    def is_dir(self, *, follow_symlinks: bool = True) -> bool:
+        return self.info.is_dir(follow_symlinks=follow_symlinks)
+
+    def is_file(self, *, follow_symlinks: bool = True) -> bool:
+        return self.info.is_file(follow_symlinks=follow_symlinks)
+
+    def is_symlink(self) -> bool:
+        return self.info.is_symlink()
+
+    @abc.abstractmethod
+    def _key(self) -> tuple[str, ...]:
+        """ Return a key that can be used for equality, hashing and sorting purposes."""
+        raise NotImplementedError
+
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and self._key() == other._key()
+
+    def __hash__(self):
+        return hash(self._key())
+
+    def __lt__(self, other):
+        if not isinstance(other, IndirectPath):
+            return NotImplemented
+
+        return self._key() < other._key()
+
+
+def as_path(p: ty.Any) -> ty.Union[Path, IndirectPath]:
+    """Like ``Path(p)`` but leaves `ArchivePath` objects untouched. Core code that
+    normalises paths should use this instead of ``Path(...)``"""
+    return p if isinstance(p, IndirectPath) else Path(p)
+
+
+def indirect_safe(obj: T) -> T:
+    """Mark a validated property, method or extra implementation as safe to run on a
+    file-set whose paths are :class:`IndirectPath` objects.
+
+    This means that method/function only uses operation on the path object and specified
+    by the ReadablePath abc (see https://pathlib-abc.readthedocs.io/en/latest/api.html#pathlib_abc.ReadablePath)
+
+    Can be stacked with ``@validated_property``/``@property`` (in either order) and with
+    ``@extra_implementation`` (place it *below* ``@extra_implementation`` so the flag is
+    set on the function that gets registered).
+    """
+    target = obj.fget if isinstance(obj, property) else obj  # type: ignore[attr-defined]
+    setattr(target, INDIRECT_SAFE_FLAG, True)
+    return obj
+
+
+def is_indirect_safe(obj: ty.Any) -> bool:
+    if isinstance(obj, property):
+        obj = obj.fget
+    return bool(getattr(obj, INDIRECT_SAFE_FLAG, False))
 
 
 class FileSetMetadata(ty.MutableMapping[str, ty.Any]):
@@ -200,6 +302,7 @@ class FileSet(DataType):
         self.fspaths = frozenset(
             itertools.chain(*(fspaths_converter(p) for p in fspaths))
         )
+        print(f"$$$$$ {self.fspaths=}")
         self._validate_fspaths()
         self._additional_fspaths()
         if metadata is not None and not isinstance(metadata, dict):
@@ -265,12 +368,12 @@ class FileSet(DataType):
         return any(isinstance(p, ArchivePath) for p in self.fspaths)
 
     def _validate_properties(self) -> None:
-        from .archive import ArchiveAccessError, is_archive_safe
+        from .archive import ArchiveAccessError
 
         archived = self.is_archived
         # Check required properties don't raise errors
         for prop_name in self.validated_properties():
-            if archived and not is_archive_safe(getattr(type(self), prop_name)):
+            if archived and not is_indirect_safe(getattr(type(self), prop_name)):
                 raise ArchiveAccessError(
                     f"Cannot validate {type(self).__name__} inside an archive as its "
                     f"'{prop_name}' check is not marked @archive_safe"
@@ -511,8 +614,6 @@ class FileSet(DataType):
         return tuple(required_props)
 
     def required_paths(self) -> ty.FrozenSet[Path]:
-        from .archive import as_path
-
         """Returns all fspaths that are required for the format"""
         required = set()
         for prop_name in self.validated_properties():
@@ -1465,8 +1566,6 @@ class FileSet(DataType):
         remaining : set[Path]
             remaining file-system paths that weren't used in any of the file-sets
         """
-        from .archive import as_path
-
         fspaths = [as_path(p) for p in fspaths]
         filesets = set()
         remaining = set(fspaths)

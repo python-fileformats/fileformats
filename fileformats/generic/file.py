@@ -1,7 +1,8 @@
 import io
 import typing as ty
 
-from fileformats.core.archive import ArchiveAccessError, archive_safe
+from fileformats.core.archive import ArchiveAccessError
+from fileformats.core.fileset import indirect_safe
 from pathlib import Path
 
 from fileformats.core.decorators import (
@@ -21,7 +22,7 @@ from .fsobject import FsObject
 class File(FsObject):
     """Generic file type"""
 
-    @archive_safe
+    @indirect_safe
     @validated_property
     def fspath(self) -> Path:
         fspath = self.select_by_ext()

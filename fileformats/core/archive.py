@@ -21,59 +21,20 @@ The design rests on three pieces:
 """
 
 import os
-import stat as stat_module
 import typing as ty
 import zipfile
-from pathlib import Path, PurePosixPath
 
-from .exceptions import FileFormatsError
+from pathlib_abc import PathInfo
 
-ARCHIVE_SAFE_FLAG = "__fileformats_archive_safe__"
+from fileformats.core.exceptions import ArchiveAccessError
+from fileformats.core.fileset import IndirectPath
 
 T = ty.TypeVar("T")
 
 
-class ArchiveAccessError(FileFormatsError):
-    """Raised when an operation that needs a real file-system path is attempted on a
-    file-set that lives inside an archive"""
-
-
-def archive_safe(obj: T) -> T:
-    """Mark a validated property, method or extra implementation as safe to run on a
-    file-set whose paths are :class:`ArchivePath` objects.
-
-    Safe code may only use the ``Traversable`` subset of the path API on
-    ``self.fspath``/``self.fspaths`` (``open``, ``read_bytes``, ``iterdir``,
-    ``is_file``, ``is_dir``, ``name``, ``joinpath``/``/``) or ``self.open()``. It must
-    not call ``os.fspath``/``str`` on the path and pass it to anything else.
-
-    Can be stacked with ``@validated_property``/``@property`` (in either order) and with
-    ``@extra_implementation`` (place it *below* ``@extra_implementation`` so the flag is
-    set on the function that gets registered).
-    """
-    target = obj.fget if isinstance(obj, property) else obj  # type: ignore[attr-defined]
-    setattr(target, ARCHIVE_SAFE_FLAG, True)
-    return obj
-
-
-def as_path(p: ty.Any) -> ty.Union[Path, "ArchivePath"]:
-    """Like ``Path(p)`` but leaves `ArchivePath` objects untouched. Core code that
-    normalises paths should use this instead of ``Path(...)``"""
-    return p if isinstance(p, ArchivePath) else Path(p)
-
-
-def is_archive_safe(obj: ty.Any) -> bool:
-    if isinstance(obj, property):
-        obj = obj.fget
-    return bool(getattr(obj, ARCHIVE_SAFE_FLAG, False))
-
-
-class ArchivePath:
+class ArchivePath(IndirectPath):
     """Abstract marker/base for paths that point *inside* an archive. Concrete
     implementations: :class:`ZipPath` (and later e.g. ``TarPath``)."""
-
-    #: the archive file on the real file-system that contains this member
-    archive: Path
 
     def __fspath__(self) -> str:
         raise ArchiveAccessError(
@@ -83,93 +44,71 @@ class ArchivePath:
             "`TargetFormat.convert(zipped)`"
         )
 
-    def absolute(self) -> "ArchivePath":
-        return self
 
-    def stat(self, follow_symlinks: bool = True) -> os.stat_result:
-        raise NotImplementedError
+class ZipInfo(PathInfo):
+    def __init__(self, zf, at):
+        self._zf, self._at = zf, at
+        names = set(zf.namelist())
+        self._file = at in names
+        self._dir = not at or (at + "/") in names or any(n.startswith(at + "/") for n in names)
+
+    def exists(self, *, follow_symlinks=True):
+        return self._file or self._dir
+
+    def is_dir(self, *, follow_symlinks=True):
+        return self._dir
+
+    def is_file(self, *, follow_symlinks=True):
+        return self._file
+
+    def is_symlink(self):
+        return False
 
 
-class ZipPath(ArchivePath, zipfile.Path):
+class ZipPath(ArchivePath):
     """A :class:`zipfile.Path` that knows which archive it came from, is hashable,
     sortable, and reports the archive's mtime."""
 
-    def __init__(self, root: ty.Union[str, os.PathLike, zipfile.ZipFile], at: str = ""):  # type: ignore[type-arg]
-        if isinstance(root, zipfile.ZipFile):
-            archive = Path(root.filename)  # type: ignore[arg-type]
-        else:
-            archive = Path(root)
-        super().__init__(root, at)
-        self.archive = archive.absolute()
+    def __init__(self, *segments, zipfile_obj):
+        self._segments = segments
 
-    # zipfile.Path creates children through `_next`, keep our subclass + archive
-    def _next(self, at: str) -> "ZipPath":
-        child = type(self).__new__(type(self))
-        zipfile.Path.__init__(child, self.root, at)
-        child.archive = self.archive
-        return child
+        if not isinstance(zipfile_obj, zipfile.ZipFile):
+            zipfile_obj = zipfile.ZipFile(zipfile_obj)
+
+        self.zipfile_obj = zipfile_obj # shared reference to the zipfile, carried to children
+
+    def __vfspath__(self):
+        return self.parser.join(*self._segments) if self._segments else ""
+
+    def with_segments(self, *segments):
+        return type(self)(*segments, zipfile_obj=self.zipfile_obj)
 
     @property
-    def member(self) -> PurePosixPath:
-        "The path of the member relative to the root of the archive"
-        return PurePosixPath(self.at)
+    def _at(self):                          # member name inside the zip
+        return self.__vfspath__().lstrip("/").removeprefix("./").rstrip("/")
 
-    def stat(self, follow_symlinks: bool = True) -> os.stat_result:
-        """Size comes from the member, mtime from the archive file itself so that
-        mtime-based caches are invalidated whenever the archive changes"""
-        archive_stat = self.archive.stat()
-        if self.is_dir():
-            mode, size = stat_module.S_IFDIR | 0o555, 0
-        else:
-            mode = stat_module.S_IFREG | 0o444
-            size = self.root.getinfo(self.at).file_size
-        return _stat_result(mode, size, archive_stat)
+    @property
+    def info(self):
+        return ZipInfo(self.zipfile_obj, self._at)
 
-    def relative_to(self, other: "ZipPath") -> PurePosixPath:
-        return self.member.relative_to(other.member)
+    def __open_reader__(self):
+        return self.zipfile_obj.open(self._at)
 
-    def __str__(self) -> str:
-        return f"{self.archive}::{self.at}"
+    def iterdir(self):
+        prefix = self._at + "/" if self._at else ""
+        kids = {n[len(prefix):].split("/")[0] for n in self.zipfile_obj.namelist() if n.startswith(prefix) and n != prefix}
+        return (self / k for k in sorted(kids))
 
-    def __repr__(self) -> str:
-        return f"ZipPath('{self.archive}', '{self.at}')"
+    def readlink(self):
+        raise NotImplementedError("zip archives have no symlinks")
 
-    def __eq__(self, other: object) -> bool:
-        return (
-            isinstance(other, ZipPath)
-            and other.archive == self.archive
-            and other.at == self.at
-        )
-
-    def __hash__(self) -> int:
-        return hash((self.archive, self.at))
-
-    def __lt__(self, other: object) -> bool:
-        if not isinstance(other, (ZipPath, Path)):
-            return NotImplemented
-        return str(self) < str(other)
-
-
-def _stat_result(mode: int, size: int, archive_stat: os.stat_result) -> os.stat_result:
-    # st_mtime_ns etc. are only populated from the 10-tuple via the floats, so build the
-    # result from the full 'n_sequence_fields' tuple to keep ns precision
-    fields = [mode, 0, 0, 1, 0, 0, size,
-              int(archive_stat.st_atime), int(archive_stat.st_mtime),
-              int(archive_stat.st_ctime)]
-    extras = {
-        "st_atime": archive_stat.st_atime,
-        "st_mtime": archive_stat.st_mtime,
-        "st_ctime": archive_stat.st_ctime,
-        "st_atime_ns": archive_stat.st_atime_ns,
-        "st_mtime_ns": archive_stat.st_mtime_ns,
-        "st_ctime_ns": archive_stat.st_ctime_ns,
-    }
-    return os.stat_result(fields, extras)
+    def _key(self):
+        return (self.zipfile_obj.filename, self.parser.normpath(self.__vfspath__() or "."))
 
 
 def zip_members(archive: ty.Union[str, os.PathLike]) -> ty.List[ZipPath]:  # type: ignore[type-arg]
     """All *file* members of a zip archive (directory entries are skipped)"""
-    root = ZipPath(archive)
+    root = ZipPath(zipfile_obj=archive)
     return sorted(
         root._next(name) for name in root.root.namelist() if not name.endswith("/")
     )
