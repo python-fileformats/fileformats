@@ -235,7 +235,7 @@ class Zip(WithArchiveClassifiers, BaseZip):
             zf.extractall(dest_dir)
         archived_type = self.archived_type or FileSet
         return archived_type(
-            *(dest_dir / p.at for p in self._archived_fspaths(archived_type))
+            *(dest_dir / p.__vfspath__() for p in self._archived_fspaths(archived_type))
         )
 
     def _archived_fspaths(self, archived_type: ty.Type[FileSet]) -> ty.List[ZipPath]:

@@ -168,6 +168,14 @@ class ZipPath(ArchivePath):
         self._segments = segments
         self._handle = handle
 
+    def __fspath__(self) -> str:
+        raise ArchiveAccessError(
+            f"'{self}' is inside the archive '{self.archive}' and has no file-system "
+            "path. Either use only archive-safe operations (e.g. `.open()`) or "
+            "extract/convert the archive first, e.g. `zipped.extract()` or "
+            "`TargetFormat.convert(zipped)`"
+        )
+
     @property
     def archive(self) -> Path:  # type: ignore[override]
         return self._handle.archive
