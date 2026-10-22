@@ -2,7 +2,7 @@ class FileFormatsError(Exception):
     "Base exception class"
 
 
-class IndirectAccessError(FileFormatsError):
+class IndirectAccessError(FileFormatsError, TypeError):
     """Raised when an operation that needs a real file-system path is attempted on a
     file-set that uses an indirect path"""
 

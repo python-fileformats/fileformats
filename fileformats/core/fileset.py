@@ -3,12 +3,14 @@ import errno
 import functools
 import hashlib
 import inspect
+import io
 import itertools
 import logging
 import operator
 import os
 import posixpath
 import shutil
+import stat as stat_module
 import struct
 import sys
 import tempfile
@@ -25,7 +27,7 @@ if sys.version_info >= (3, 10):
 else:
     from typing_extensions import TypeAlias
 
-from pathlib_abc import ReadablePath
+from pathlib_abc import ReadablePath, WritablePath, vfsopen
 
 from fileformats.core.converter_helpers import SubtypeVar
 from fileformats.core.typing import Self
@@ -80,44 +82,67 @@ logger = logging.getLogger("fileformats")
 T = ty.TypeVar("T")
 
 
-class IndirectPath(ReadablePath, metaclass=abc.ABCMeta):
-    """Base class for indirect Paths. These could be paths that point inside of an archive or paths that are point to
-     a place on a remote server SSH. The paths are reable and usable, but need to implement a number of methods to be
-     usable like a regular Path. This is based on the pathlib-abc package which defined the abstract base classes:
-     https://pathlib-abc.readthedocs.io/en/latest/api.html#abstract-base-classes
+class IndirectPath(ReadablePath):
+    """Base class for paths that can be read through the path object but have no path
+    on the local file-system, e.g. members of an archive or files on a remote host.
 
-     From JoinablePath (see https://pathlib-abc.readthedocs.io/en/latest/api.html#pathlib_abc.JoinablePath)
-     * __vfspath__()
-     * with_segments(*pathsegments)
+    Subclasses implement the abstract members of pathlib-abc:
 
-     From ReadablePath (see https://pathlib-abc.readthedocs.io/en/latest/api.html#pathlib_abc.ReadablePath)
-     * info   (a property)
-     * __open_reader__()
-     * iterdir()
-     * readlink()
+    * ``__vfspath__()`` and ``with_segments(*pathsegments)`` (from ``JoinablePath``)
+    * ``info``, ``__open_reader__()``, ``iterdir()`` and ``readlink()`` (from
+      ``ReadablePath``)
 
-     Additionally, we added a method:
-     * _key() -> tuple(str, ...)
-     * mtime_ns() -> int   # which returns the stat().st_mtime_ns result we need for some checks
+    plus two used by fileformats:
 
-     """
-    # By default, we use a posixpath for parsing separators etc
+    * ``_key()``: hashable tuple identifying the path, used for equality, hashing and
+      sorting. Its parts must be comparable with ``<`` between paths of the same type
+    * ``mtime_ns``: modification time in nanoseconds, used to invalidate caches
+
+    and optionally ``size`` (defaults to 0).
+
+    This class adds what fileformats calls on paths but pathlib-abc doesn't provide:
+    ``open()``, ``stat()``, ``exists()``/``is_dir()``/``is_file()``/``is_symlink()``,
+    ``absolute()``, equality/hashing/ordering and a helpful ``__fspath__`` error.
+
+    NB: because ``__fspath__`` is defined, ``isinstance(path, os.PathLike)`` is True.
+    Code that normalises paths (e.g. ``Path(p)``) must check for ``IndirectPath``
+    first.
+    """
+
+    # Separators etc. are parsed as posix paths by default. A backend for a remote
+    # Windows host could override this with ``ntpath``
     parser = posixpath
+
+    # -- implemented by subclasses ---------------------------------------------------
+
+    @abc.abstractmethod
+    def _key(self) -> ty.Tuple[ty.Hashable, ...]:
+        """Hashable tuple identifying the path, used for equality, hashing and
+        sorting"""
+
+    @property
+    @abc.abstractmethod
+    def mtime_ns(self) -> int:
+        """Modification time of the file in nanoseconds"""
+
+    @property
+    def size(self) -> int:
+        """Size of the file in bytes (0 if unknown)"""
+        return 0
+
+    # -- local file-system access is refused -----------------------------------------
 
     def __fspath__(self) -> str:
         raise IndirectAccessError(
-            f"'{self}' is an IndirectPath and has no file-system "
-            "path. Either use only indirect-safe operations (e.g. `.open()`) or "
-            "extract/convert the path to a local Path first."
+            f"{self!r} has no local file-system path. Either use only operations that "
+            "read through the path (e.g. `.open()`), or extract/convert it to a local "
+            "path first"
         )
 
-    def __repr__(self) -> str:
-        """ Default representation, might need some work for subclasses to give more information """
-        return f"{type(self).__name__}({', '.join(repr(x) for x in self._key())})"
+    # -- file-type queries (pathlib-abc only provides them on `.info`) ---------------
 
-    # Add shortcuts to the path.info.exists etc
     def exists(self, *, follow_symlinks: bool = True) -> bool:
-            return self.info.exists(follow_symlinks=follow_symlinks)
+        return self.info.exists(follow_symlinks=follow_symlinks)
 
     def is_dir(self, *, follow_symlinks: bool = True) -> bool:
         return self.info.is_dir(follow_symlinks=follow_symlinks)
@@ -128,22 +153,71 @@ class IndirectPath(ReadablePath, metaclass=abc.ABCMeta):
     def is_symlink(self) -> bool:
         return self.info.is_symlink()
 
-    @abc.abstractmethod
-    def _key(self) -> tuple[str, ...]:
-        """ Return a key that can be used for equality, hashing and sorting purposes."""
-        raise NotImplementedError
+    # -- the parts of pathlib.Path's API that fileformats uses -----------------------
 
-    def __eq__(self, other):
-        return isinstance(other, type(self)) and self._key() == other._key()
+    def absolute(self) -> "IndirectPath":
+        """Indirect paths are already absolute within their own namespace"""
+        return self
 
-    def __hash__(self):
-        return hash(self._key())
+    def open(
+            self,
+            mode: str = "r",
+            buffering: int = -1,
+            encoding: ty.Optional[str] = None,
+            errors: ty.Optional[str] = None,
+            newline: ty.Optional[str] = None,
+    ) -> ty.IO[ty.Any]:
+        """Open the file, like ``pathlib.Path.open()`` (pathlib-abc only provides the
+        ``vfsopen()`` function). Write modes need a backend that is also a
+        ``pathlib_abc.WritablePath``"""
+        if any(c in mode for c in "wax+") and not isinstance(self, WritablePath):
+            raise io.UnsupportedOperation(f"{self!r} is read-only (mode {mode!r})")
+        return vfsopen(self, mode, buffering, encoding, errors, newline)  # type: ignore[no-any-return]
 
-    def __lt__(self, other):
+    def stat(self, *, follow_symlinks: bool = True) -> os.stat_result:
+        """A minimal ``os.stat_result`` built from ``info``, ``mtime_ns`` and ``size``,
+        so code written for ``pathlib.Path`` (e.g. ``FileSet.mtimes``) keeps working"""
+        info = self.info
+        if not info.exists(follow_symlinks=follow_symlinks):
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), repr(self))
+        if info.is_dir(follow_symlinks=follow_symlinks):
+            mode, size = stat_module.S_IFDIR | 0o555, 0
+        else:
+            mode, size = stat_module.S_IFREG | 0o444, self.size
+        mtime_ns = self.mtime_ns
+        seconds = mtime_ns / 1e9
+        # The first 10 fields are positional (the integer times are whole seconds);
+        # the float and nanosecond times are passed by name
+        return os.stat_result(
+            (mode, 0, 0, 1, 0, 0, size) + (mtime_ns // 10**9,) * 3,
+            {
+                "st_atime": seconds,
+                "st_mtime": seconds,
+                "st_ctime": seconds,
+                "st_atime_ns": mtime_ns,
+                "st_mtime_ns": mtime_ns,
+                "st_ctime_ns": mtime_ns,
+            },
+            )
+
+    # -- identity --------------------------------------------------------------------
+
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, IndirectPath):
             return NotImplemented
+        # Exact type match keeps == symmetric between a class and its subclasses
+        return type(self) is type(other) and self._key() == other._key()
 
-        return self._key() < other._key()
+    def __hash__(self) -> int:
+        return hash(self._key())
+
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, IndirectPath):
+            return NotImplemented
+        return (type(self).__name__, self._key()) < (type(other).__name__, other._key())
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({', '.join(repr(k) for k in self._key())})"
 
 
 def as_path(p: ty.Any) -> ty.Union[Path, IndirectPath]:
