@@ -7,17 +7,20 @@ import typing as ty
 from pathlib import Path
 
 import pytest
-
-from conftest import write_test_file
-from fileformats.core import FileSet, validated_property
+from fileformats.generic import File, BinaryFile, Directory, FsObject
+from fileformats.core import (
+    FileSet,
+    validated_property,
+)
 from fileformats.core.exceptions import (
     FileFormatsNotRelativePathError,
     UnsatisfiableCopyModeError,
 )
 from fileformats.core.mixin import WithSeparateHeader
 from fileformats.core.utils import collate_metadata_series
-from fileformats.generic import BinaryFile, Directory, File, FsObject
 from fileformats.testing import Foo
+
+from conftest import write_test_file
 
 
 class Mario(BinaryFile):
