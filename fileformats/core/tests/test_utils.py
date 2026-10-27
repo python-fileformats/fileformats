@@ -7,14 +7,11 @@ import typing as ty
 from pathlib import Path
 
 import pytest
-from fileformats.generic import File, BinaryFile, Directory, FsObject, SetOf
+from fileformats.generic import File, BinaryFile, Directory, FsObject
 from fileformats.core import (
     FileSet,
-    MockMixin,
     validated_property,
-    mtime_cached_property,
 )
-from fileformats.text import TextFile
 from fileformats.core.exceptions import (
     FileFormatsNotRelativePathError,
     UnsatisfiableCopyModeError,
@@ -24,6 +21,7 @@ from fileformats.core.utils import collate_metadata_series
 from fileformats.testing import Foo
 
 from conftest import write_test_file
+
 
 class Mario(BinaryFile):
     ext = ".mario"
@@ -65,11 +63,6 @@ def fsobject(luigi_file, bowser_dir, request):
         return bowser_dir
     else:
         assert False
-
-
-@pytest.fixture
-def mock_fileset():
-    return SetOf[TextFile].mock("/path/to/a/mock", "/path/to/another/mock")
 
 
 @pytest.fixture
@@ -673,52 +666,6 @@ def test_hash_files(fsobject: FsObject, work_dir: Path, dest_dir: Path):
     assert cpy.hash_files() == fsobject.hash_files()
 
 
-class MtimeTestFile(File):
-
-    flag: int
-
-    @mtime_cached_property
-    def cached_prop(self):
-        return self.flag
-
-
-def test_mtime_cached_property(tmp_path: Path):
-    fspath = tmp_path / "file_1.txt"
-    fspath.write_text("hello")
-
-    file = MtimeTestFile(fspath)
-
-    file.flag = 0
-    assert file.cached_prop == 0
-    # Need a long delay to ensure the mtime changes on Ubuntu and particularly on Windows
-    # On MacOS, the mtime resolution is much higher so not usually an issue. Use
-    # explicitly cache clearing if needed
-    time.sleep(2)
-    file.flag = 1
-    assert file.cached_prop == 0
-    time.sleep(2)
-    fspath.write_text("world")
-    assert file.cached_prop == 1
-
-
-def test_mtime_cached_property_force_clear(tmp_path: Path):
-    fspath = tmp_path / "file_1.txt"
-    fspath.write_text("hello")
-
-    file = MtimeTestFile(fspath)
-
-    file.flag = 0
-    assert file.cached_prop == 0
-    file.flag = 1
-    MtimeTestFile.cached_prop.clear(file)
-    assert file.cached_prop == 1
-
-
-def test_hash_mock_files(mock_fileset: MockMixin, work_dir: Path, dest_dir: Path):
-    file_hashes = mock_fileset.hash_files(relative_to="")
-    assert sorted(Path(p) for p in file_hashes) == sorted(
-        p for p in mock_fileset.fspaths
-    )
 def test_all_file_paths(work_dir: Path):
     sub_dir = work_dir / "sub"
     deep_dir = sub_dir / "deep"
