@@ -1,16 +1,18 @@
 import io
-from pathlib import Path
 import typing as ty
-from fileformats.core.fileset import FileSet
+from pathlib import Path
+
+from fileformats.core.decorators import (
+    classproperty,
+    mtime_cached_property,
+    validated_property,
+)
 from fileformats.core.exceptions import (
     FormatMismatchError,
     UnconstrainedExtensionException,
 )
-from fileformats.core.decorators import (
-    validated_property,
-    classproperty,
-    mtime_cached_property,
-)
+from fileformats.core.fileset import FileSet
+
 from .fsobject import FsObject
 
 
@@ -171,10 +173,15 @@ class UnicodeFile(File):
         contents: str = super().read_contents(size=size, offset=offset)  # type: ignore[assignment]
         return contents
 
-    def read_text(
-        self, encoding: ty.Optional[str] = None, errors: ty.Optional[str] = None
-    ) -> str:
-        return self.fspath.read_text(encoding=encoding, errors=errors)
+    def read_text(self, **kwargs: ty.Any) -> str:
+        return self.fspath.read_text(**kwargs)
+
+    def write_text(
+        self,
+        data: str,
+        **kwargs: ty.Any,
+    ) -> int:  # Returns number of characters written
+        return self.fspath.write_text(data=data, **kwargs)
 
 
 class BinaryFile(File):

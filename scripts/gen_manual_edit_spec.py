@@ -1,7 +1,8 @@
-import re
 import json
-import yaml
+import re
 import typing as ty
+
+import yaml
 
 
 def generate_manual_edit_spec(scraped_json: str, editable_yaml: str) -> None:

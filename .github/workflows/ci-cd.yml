@@ -17,14 +17,11 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
       fail-fast: false
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash -l {0}
-    env:
-      PIP_BREAK_SYSTEM_PACKAGES: 1
+    # removed: defaults.run.shell: bash -l {0}
+    # removed: env.PIP_BREAK_SYSTEM_PACKAGES
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -40,21 +37,23 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Update build tools
-      run: python3 -m pip install --upgrade pip
-      if: matrix.os != 'macos-latest'
+        allow-prereleases: true
+    - name: Check interpreter
+      run: |
+        which -a python python3
+        python -c "import sys; print(sys.executable, sys.prefix)"
     - name: Install Package
-      run: python3 -m pip install -e .[test]
+      run: python -m pip install -e ".[test]"
     - name: Install Extras Package
-      run: python3 -m pip install -e ./extras[test]
+      run: python3 -m pip install -e ./extras[test,application,image,vendor_openxmlformats_officedocument]
     - name: MyPy
-      run: mypy --install-types --non-interactive --no-warn-unused-ignores .
+      run: mypy --install-types --non-interactive --no-warn-unused-ignores --python-version "${{ matrix.python-version }}" .
     - name: Pytest
       run: pytest -vvs --cov fileformats --cov-config .coveragerc --cov-report xml .
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v7
       with:
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         token: ${{ secrets.CODECOV_TOKEN }}
 
   build:
@@ -75,7 +74,7 @@ jobs:
       # because the Github action bot is not a collaborator on the repo
       run: git config --local --unset http.https://github.com/.extraheader
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v6
       with:
         python-version: '3.12'
     - name: Install build tools
@@ -100,7 +99,7 @@ jobs:
       # because the Github action bot is not a collaborator on the repo
       run: git config --local --unset http.https://github.com/.extraheader
     - name: Setup Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v6
       with:
         python-version: 3.x
     - name: Install dependencies
@@ -163,24 +162,21 @@ jobs:
 
   deploy-docs:
     needs: [build-docs, deploy]
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
+    # Allows the built-in GITHUB_TOKEN to push to the gh-pages branch
+    permissions:
+      contents: write
     steps:
     - name: Download built docs
       uses: actions/download-artifact@v4
       with:
         name: built-docs
         path: docs-build
-    - name: Check for GHPAGES_DEPLOY_KEY token
-      id: deployable
-      if: github.event_name == 'release'
-      env:
-        GHPAGES_DEPLOY_KEY: "${{ secrets.GHPAGES_DEPLOY_KEY }}"
-      run: if [ -n "$GHPAGES_DEPLOY_KEY" ]; then echo "DEPLOY=true" >> $GITHUB_OUTPUT; fi
-    - name: Deploy Docs to GitHub Pages
-      if: steps.deployable.outputs.DEPLOY
-      uses: peaceiris/actions-gh-pages@v3
+    - name: Deploy docs to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
       with:
-        github_token: ${{ secrets.GHPAGES_DEPLOY_KEY }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: docs-build
 
 # Deploy on tags if PYPI_API_TOKEN is defined in the repository secrets.

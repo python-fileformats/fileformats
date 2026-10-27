@@ -1,17 +1,27 @@
-import operator
-from pathlib import Path
+import functools
 import inspect
-import typing as ty
+import logging
+import operator
 import re
-from fileformats.core.exceptions import (
-    FormatDefinitionError,
-    FormatRecognitionError,
-)
-import fileformats.core
-from .utils import fspaths_converter, add_exc_note
+import typing as ty
+from pathlib import Path
 
+import fileformats.core
+from fileformats.core.exceptions import FormatDefinitionError, FormatRecognitionError
+
+from .convertible import ConvertibleToMarker
+from .utils import (
+    add_exc_note,
+    fspaths_converter,
+    get_optional_type,
+    is_optional,
+    is_union,
+)
+
+logger = logging.getLogger("fileformats")
 
 LIST_MIME = "+list-of"
+TUPLE_MIME = "+tuple-of"
 IANA_MIME_TYPE_REGISTRIES = [
     "application",
     "audio",
@@ -22,12 +32,21 @@ IANA_MIME_TYPE_REGISTRIES = [
     "multipart",
     "text",
     "video",
+    "vendor.ms_excel",
+    "vendor.ms_powerpoint",
+    "vendor.ms_word",
+    "vendor.openxmlformats_officedocument",
 ]
 ALL_STANDARD_TYPE_REGISTRIES = IANA_MIME_TYPE_REGISTRIES + [
     "field",
     "testing",
-    "testing_subpackage",
+    "vendor.testing",
 ]
+# Namespaces that are shipped within the main "fileformats" package, and therefore have
+# their "extras" implementations bundled together in the "fileformats-extras" package.
+# Note that "generic" is included here even though it isn't a "standard" type registry,
+# since generic types are defined in the main package alongside the standard ones
+BUNDLED_EXTRAS_NAMESPACES = ALL_STANDARD_TYPE_REGISTRIES + ["generic"]
 
 
 def find_matching(
@@ -98,13 +117,29 @@ def from_mime(
     FormatRecognitionError
         if the MIME string does not correspond to a valid file format class
     """
-    if mime_str.endswith(LIST_MIME):
-        item_mime = mime_str[: -len(LIST_MIME)]
+    if mime_str.endswith("?"):
+        return from_mime(mime_str[:-1]) | None  # type: ignore[operator,no-any-return,return-value]
+    if match := re.match(
+        r".*(" + re.escape(LIST_MIME) + "|" + re.escape(TUPLE_MIME) + r")$", mime_str
+    ):
+        item_mime = mime_str[: -len(match.group(1))]
         if item_mime.startswith("[") and item_mime.endswith("]"):
             item_mime = item_mime[1:-1]
-        return ty.List[from_mime(item_mime)]  # type: ignore
-    if "," in mime_str:
-        return ty.Union.__getitem__(tuple(from_mime(t) for t in mime_str.split(",")))  # type: ignore
+        if match.group(1) == LIST_MIME:
+            return list[from_mime(item_mime)]  # type: ignore
+        else:
+            return tuple[from_mime(item_mime)]  # type: ignore
+    if "|" in mime_str:
+        return functools.reduce(operator.or_, (from_mime(t) for t in mime_str.split("|")))  # type: ignore
+    if mime_str.endswith(ConvertibleToMarker.mime_suffix):
+        fmt = from_mime(mime_str[: -len(ConvertibleToMarker.mime_suffix)])
+        if not (inspect.isclass(fmt) and issubclass(fmt, fileformats.core.FileSet)):
+            raise FormatRecognitionError(
+                f"'{ConvertibleToMarker.mime_suffix}' in '{mime_str}' can only be "
+                f"applied to file-set formats, not {fmt}"
+            )
+        # Resolved from the converters installed in the current environment
+        return ConvertibleToMarker(fmt).hint()  # type: ignore[no-any-return]
     return fileformats.core.DataType.from_mime(mime_str)
 
 
@@ -129,10 +164,24 @@ def to_mime(
         namespace scheme instead of putting all non-standard types into the 'application'
         registry if not
     """
+    if is_optional(datatype):
+        return to_mime(get_optional_type(datatype), official=official) + "?"
     # Handle forward references
     if isinstance(datatype, ty.ForwardRef):
         datatype = datatype.__forward_arg__
     origin = ty.get_origin(datatype)
+    if origin is ty.Annotated:
+        marker = ConvertibleToMarker.from_hint(datatype)
+        if marker is not None:
+            if official:
+                raise TypeError(
+                    f"Cannot convert {datatype} to official mime-type as it "
+                    "depends on the converters that are installed, please use "
+                    'official=False to convert to "mime-like" string instead'
+                )
+            # Only the format is written, not the formats that are convertible to
+            # it, so they are resolved again when the string is read
+            return to_mime(marker.format, official=False) + marker.mime_suffix
     if (
         origin is None
         and inspect.isclass(datatype)
@@ -146,14 +195,14 @@ def to_mime(
             f"Cannot convert {datatype} to official mime-type as it is not a proper "
             'file-type, please use official=False to convert to "mime-like" string instead'
         )
-    if origin is list:
+    if origin in (list, tuple):
         item_mime = to_mime(ty.get_args(datatype)[0], official=official)
         if "," in item_mime:
             item_mime = "[" + item_mime + "]"
-        item_mime += LIST_MIME
+        item_mime += LIST_MIME if origin is list else TUPLE_MIME
         return item_mime
-    if origin is ty.Union:
-        return ",".join(to_mime(t, official=official) for t in ty.get_args(datatype))
+    if is_union(datatype):
+        return "|".join(to_mime(t, official=official) for t in ty.get_args(datatype))
     if (
         isinstance(datatype, str)
         and datatype.startswith("fileformats.")
@@ -222,7 +271,7 @@ def from_paths(
         unwrapped = []
 
         def unwrap(candidate: ty.Type["fileformats.core.FileSet"]) -> None:
-            if ty.get_origin(candidate) is ty.Union:
+            if is_union(candidate):
                 arg: ty.Type["fileformats.core.FileSet"]
                 for arg in ty.get_args(candidate):
                     unwrap(arg)
@@ -232,7 +281,7 @@ def from_paths(
         for candidate in candidates:
             unwrap(candidate)
         candidates = tuple(unwrapped)
-        candidates_str = ", ".join(c.mime_like for c in candidates)
+        candidates_str = ", ".join(to_mime(c, official=False) for c in candidates)
     else:
         # Use all installed file-set classes if no candidates are provided, sorted
         # alphabetically to ensure behaviour is consistent between runs
@@ -264,18 +313,43 @@ def from_paths(
 
 
 def to_mime_format_name(format_name: str) -> str:
+    if format_name.startswith("_"):
+        # Leading underscores are used for names that start with a digit
+        format_name = format_name[1:]
     if "___" in format_name:
         raise FormatDefinitionError(
             f"Cannot convert name of format class {format_name} to mime string as it "
-            "contains triple underscore"
+            "contains triple underscore, which is undefined behavior (double underscores "
+            "are used to indicate '+' in mime string and single underscores are used "
+            "to indicate '.')"
         )
-    if format_name.startswith("_"):
-        format_name = format_name[1:]
     format_name = format_name[0].lower() + format_name[1:]
     format_name = re.sub("__([A-Z])", lambda m: "+" + m.group(1).lower(), format_name)
+    format_name = re.sub("__$", "+", format_name)
     format_name = re.sub("_([A-Z])", lambda m: "." + m.group(1).lower(), format_name)
     format_name = re.sub("([A-Z])", lambda m: "-" + m.group(1).lower(), format_name)
     return format_name
+
+
+FormatT = ty.TypeVar("FormatT", bound=type)
+
+
+def formats_by_mime_format_name(
+    formats: ty.Iterable[FormatT],
+) -> ty.Iterator[ty.Tuple[str, FormatT]]:
+    """Pair each format with the MIME format name of its class, skipping (with a
+    warning) any whose name can't be converted, e.g. from an installed extension
+    package that is out of date, so that they don't prevent the others being found"""
+    for fmt in formats:
+        try:
+            yield to_mime_format_name(fmt.__name__), fmt
+        except FormatDefinitionError as e:
+            logger.warning(
+                "Skipping %s.%s when looking up formats by name: %s",
+                fmt.__module__,
+                fmt.__name__,
+                e,
+            )
 
 
 def from_mime_format_name(format_name: str) -> str:
@@ -284,7 +358,9 @@ def from_mime_format_name(format_name: str) -> str:
     if re.match(r"^[0-9]", format_name):
         format_name = "_" + format_name
     format_name = format_name.capitalize()
-    format_name = re.sub(r"(\.)(\w)", lambda m: "_" + m.group(2).upper(), format_name)
-    format_name = re.sub(r"(\+)(\w)", lambda m: "__" + m.group(2).upper(), format_name)
-    format_name = re.sub(r"(-)(\w)", lambda m: m.group(2).upper(), format_name)
+    format_name = re.sub(r"\.(\w)", lambda m: "_" + m.group(1).upper(), format_name)
+    format_name = re.sub(r"\+(\w)", lambda m: "__" + m.group(1).upper(), format_name)
+    format_name = re.sub(r"\+$", "__", format_name)
+    format_name = re.sub(r"-(\d)", lambda m: "_" + m.group(1), format_name)
+    format_name = re.sub(r"-(\w)", lambda m: m.group(1).upper(), format_name)
     return format_name

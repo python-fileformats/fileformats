@@ -1,12 +1,9 @@
 import typing as ty
-from .utils import (
-    fspaths_converter,
-)
+
 from .decorators import classproperty
+from .exceptions import FormatDefinitionError
 from .typing import FspathsInputType
-from .exceptions import (
-    FormatDefinitionError,
-)
+from .utils import fspaths_converter
 
 if ty.TYPE_CHECKING:
     from .fileset import FileSet

@@ -1,20 +1,21 @@
-from pathlib import Path
+import logging
 import re
 import typing as ty
-import logging
-from .datatype import DataType
-import fileformats.core
-from .utils import get_optional_type
-from .decorators import validated_property, classproperty
-from .identification import to_mime_format_name
-from .converter_helpers import SubtypeVar, Converter
-from .classifier import Classifier
-from .exceptions import (
-    FormatMismatchError,
-    FormatRecognitionError,
-    FormatDefinitionError,
-)
+from pathlib import Path
 
+import fileformats.core
+
+from .classifier import Classifier
+from .converter_helpers import Converter, SubtypeVar
+from .datatype import DataType
+from .decorators import classproperty, validated_property
+from .exceptions import (
+    FileFormatsExtrasError,
+    FormatDefinitionError,
+    FormatMismatchError,
+)
+from .identification import to_mime_format_name
+from .utils import get_optional_type
 
 logger = logging.getLogger("fileformats")
 
@@ -88,6 +89,9 @@ class WithMagicVersion:
         be read from the file, by default it will be the length of the magic_pattern
         string (which will probably be longer than the string it matches due to the
         special characters in the regex)
+
+    Override `decode_version` to control how the bytes captured by the groups in the
+    magic pattern are translated into version strings (UTF-8 decoding by default)
     """
 
     binary: bool
@@ -109,7 +113,9 @@ class WithMagicVersion:
                 f"Byte-string of length {read_length} at {self.magic_pattern_offset} "
                 f"({read_bytes!r}), doesn't match expected pattern, {self.magic_pattern!r}"
             )
-        version: ty.Tuple[str, ...] = tuple(b.decode("utf-8") for b in match.groups())
+        version: ty.Tuple[str, ...] = tuple(
+            self.decode_version(b) for b in match.groups()
+        )
         if not version:
             raise FormatDefinitionError(
                 f"No version patterns found in magic pattern of {type(self).__name__} "
@@ -118,6 +124,24 @@ class WithMagicVersion:
         if len(version) == 1:
             return version[0]
         return version
+
+    @classmethod
+    def decode_version(cls, version_bytes: bytes) -> str:
+        """Translates the bytes captured by a group in the magic pattern into a version
+        string. Override in subclasses where the version isn't encoded as text, e.g.
+        a version number stored as a raw byte value
+
+        Parameters
+        ----------
+        version_bytes : bytes
+            the bytes captured by a group in the magic pattern
+
+        Returns
+        -------
+        str
+            the version string
+        """
+        return version_bytes.decode("utf-8")
 
 
 class WithAdjacentFiles:
@@ -219,7 +243,10 @@ class WithSideCars(WithAdjacentFiles):
         return tuple(tp(self.select_by_ext(tp)) for tp in self.side_car_types)  # type: ignore[attr-defined]
 
     def read_metadata(self, **kwargs: ty.Any) -> ty.Mapping[str, ty.Any]:
-        metadata: ty.Dict[str, ty.Any] = dict(self.primary_type.read_metadata(self, **kwargs))  # type: ignore[arg-type]
+        try:
+            metadata: ty.Dict[str, ty.Any] = dict(self.primary_type.read_metadata(self, **kwargs))  # type: ignore[arg-type]
+        except FileFormatsExtrasError:
+            metadata = {}
         for side_car in self.side_cars:
             try:
                 side_car_metadata: ty.Dict[str, ty.Any] = side_car.load()
@@ -271,7 +298,18 @@ class WithClassifiers:
     allowed_classifiers : tuple[type,...], optional
         the allowable types (+ subclasses) for the content types. If None all types
         are allowed
-    genericly_classified : bool, optional
+    multiple_classifiers: bool, optional
+        whether multiple classifiers can be provided (true) or just a single classifier (false)
+    allow_optional_classifiers: bool, optional
+        whether Optional classifiers are allowed in the classifier set. Optional classifiers are
+        classifiers that are wrapped in typing.Optional[], indicating that the classifier
+        may or may not be present in the format
+    exclusive_classifiers: tuple[ty.Type[Classifier], ...], optional
+        a set of classifiers that are exclusive, i.e. only one classifier from each
+        by default empty.
+    ordered_classifiers: bool, optional
+        whether the order of the classifiers matters (true) or not (false). If false,
+    genericly_classified: bool, optional
         whether the class can be classified by classifiers in any namespace (true) or just the
         namespace it belongs to (false). If true, then the namespace of the genericly
         classified class is omitted from the "mime-like" string. Note that the
@@ -379,7 +417,9 @@ class WithClassifiers:
                     }
                     for classifier in classifiers_to_check:
                         for exc_classifier in repetitions:
-                            if issubclass(classifier, exc_classifier):
+                            if issubclass(
+                                origin_type(classifier), origin_type(exc_classifier)
+                            ):
                                 repetitions[exc_classifier].append(classifier)
                     repeated = [t for t in repetitions.items() if len(t[1]) > 1]
                     if repeated:
@@ -448,8 +488,10 @@ class WithClassifiers:
             ]
             if not cls.ordered_classifiers:
                 classifier_names.sort()
+            # The name isn't used to generate the MIME-like string (see
+            # `_mime_format_name`), so it can be the same as how it is written
             classified = type(
-                f"{'_'.join(classifier_names)}__{cls.__name__}",
+                f"{cls.__name__}[{', '.join(classifier_names)}]",
                 (cls,),
                 class_attrs,
             )
@@ -643,11 +685,17 @@ class WithClassifiers:
                         f"({list(source_wildcard_classifiers)}), and target "
                         f"{cls} ({cls.wildcard_classifiers()})"
                     )
+                # Check the converters registered on the unclassified type, which is
+                # where generic converters are stored (see below), rather than
+                # `cls.converters`, which may be inherited from a base class (e.g.
+                # `FsObject`) and hold converters from types that aren't classified
+                converters_dict = cls.unclassified.get_converters_dict()  # type: ignore[attr-defined]
                 prev_registered = [
                     f
-                    for f in cls.converters  # type: ignore[attr-defined]
+                    for f in converters_dict
                     if (
-                        issubclass(source_format.unclassified, f.unclassified)  # type: ignore[attr-defined]
+                        getattr(f, "is_classified", False)
+                        and issubclass(source_format.unclassified, f.unclassified)  # type: ignore[attr-defined]
                         and f.non_wildcard_classifiers()
                         == source_format.non_wildcard_classifiers()  # type: ignore[attr-defined]
                     )
@@ -655,7 +703,7 @@ class WithClassifiers:
                 assert len(prev_registered) <= 1
                 prev = prev_registered[0] if prev_registered else None
                 if prev:
-                    prev_converter = cls.converters[prev]  # type: ignore[attr-defined]
+                    prev_converter = converters_dict[prev]
                     # task, task_kwargs = converter_spec
                     # prev_task, prev_kwargs, prev_classifiers = prev_tuple
                     if converter == prev_converter:
@@ -699,19 +747,87 @@ class WithClassifiers:
                     and namespaces[1].split("-")[0] == namespaces[0]
                 ):
                     return namespaces[1]
-                msg = (
-                    "Cannot create reversible MIME type for because did not find a "
-                    f"common namespace between all classifiers {list(cls.classifiers)}"
-                )
-                if not cls.generically_classifiable:
-                    msg += f" and (non genericly classified) base class {cls.unclassified}"  # type: ignore[attr-defined]
-                raise FormatRecognitionError(msg + f", found:\n{list(namespaces)}")
+                # Otherwise use the namespace of the unclassified type, and include
+                # the namespaces of the classifiers from other namespaces in the
+                # MIME-like string (see `_mime_format_name`)
+                return cls.unclassified.namespace  # type: ignore[attr-defined, no-any-return]
         else:
             try:
                 namespace = super().namespace  # type: ignore[misc]
             except AttributeError:
                 namespace = None
         return namespace
+
+    @classproperty
+    def vendor(cls) -> ty.Optional[str]:
+        """The "vendor" the format belongs to under the "fileformats" umbrella
+        namespace"""
+        vendor: ty.Optional[str]
+        if cls.is_classified:
+            vendors: ty.Collection[str] = set(
+                t.vendor for t in cls.classifiers if t.vendor
+            )
+            if cls.unclassified.vendor:  # type: ignore[attr-defined]
+                vendors.add(cls.unclassified.vendor)  # type: ignore[attr-defined]
+            if not vendors:
+                return None
+            if len(vendors) == 1:
+                return next(iter(vendors))
+            # Otherwise use the vendor of the unclassified type, and include the
+            # vendors of the other classifiers in the MIME-like string (see
+            # `_mime_format_name`)
+            return cls.unclassified.vendor  # type: ignore[attr-defined, no-any-return]
+        else:
+            vendor = super().vendor  # type: ignore[misc]
+        return vendor
+
+    @classmethod
+    def _mime_format_name(
+        cls, namespace: ty.Optional[str] = None, vendor: ty.Optional[str] = None
+    ) -> str:
+        """The format part of the MIME-like string of the class (i.e. after the "/"),
+        generated from its classifiers and unclassified type rather than its name, e.g.
+        "b..a+k". Classified types used as classifiers are enclosed in brackets, e.g.
+        "[informal-schema+json]+zip", and classifiers that can't be found in the
+        namespace (and vendor) of the MIME-like string include their own, e.g.
+        "[testing/test-field]+array"
+
+        Parameters
+        ----------
+        namespace : str, optional
+            the namespace of the MIME-like string the name is part of, the namespace of
+            the class by default
+        vendor : str, optional
+            the vendor of the MIME-like string the name is part of, the vendor of the
+            class by default
+        """
+        if not cls.is_classified:
+            return super()._mime_format_name(namespace, vendor)  # type: ignore[misc, no-any-return]
+        if namespace is None:
+            namespace = cls.namespace
+            vendor = cls.vendor
+        assert namespace is not None
+
+        def item_name(tp: ty.Type[Classifier]) -> str:
+            if not tp._resolvable_in(namespace, vendor):
+                return "[" + tp.mime_like + "]"  # type: ignore[attr-defined, no-any-return]
+            name = tp._mime_format_name(namespace, vendor)
+            if getattr(tp, "is_classified", False):
+                name = "[" + name + "]"
+            return name
+
+        classifiers = "..".join(
+            item_name(get_optional_type(t)) for t in cls.classifiers
+        )
+        unclassified = cls.unclassified  # type: ignore[attr-defined]
+        if unclassified._resolvable_in(namespace, vendor) or getattr(
+            unclassified, "generically_classifiable", False
+        ):
+            # Generically classifiable types are looked up by name across all namespaces
+            unclassified_name = unclassified._mime_format_name(namespace, vendor)
+        else:
+            unclassified_name = "[" + unclassified.mime_like + "]"
+        return classifiers + "+" + str(unclassified_name)
 
     @classproperty  # type: ignore[arg-type]
     def type_name(cls) -> str:
@@ -733,3 +849,11 @@ class WithClassifier(WithClassifiers):
 class WithOrderedClassifiers(WithClassifiers):
 
     ordered_classifiers = True
+
+
+def origin_type(tp: type) -> type:
+    """Get the origin type of a possibly generic type"""
+    origin: ty.Optional[type] = ty.get_origin(tp)
+    if origin is None:
+        return tp
+    return origin  # type: ignore[no-any-return]

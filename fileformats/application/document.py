@@ -1,6 +1,5 @@
-from fileformats.generic import BinaryFile
-from .archive import Zip
 from fileformats.core.mixin import WithMagicNumber
+from fileformats.generic import BinaryFile
 
 
 # Document formats
@@ -24,16 +23,11 @@ class Msword(Document):
     iana_mime = "application/msword"
 
 
-class MswordX(Zip, Document):
-    ext = ".docx"
-
-    iana_mime = (
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
-
-
 class Postscript(WithMagicNumber, Document):
     ext = ".eps"
     alternate_exts = (".ps",)
     magic_number = b"%!"
     iana_mime = "application/postscript"
+
+
+__all__ = ["Document", "Pdf", "Msword", "Postscript"]

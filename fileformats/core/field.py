@@ -1,9 +1,10 @@
 from __future__ import annotations
-import typing as ty
-from .decorators import classproperty
-from .datatype import DataType
-from .exceptions import FormatMismatchError
 
+import typing as ty
+
+from .datatype import DataType
+from .decorators import classproperty
+from .exceptions import FormatMismatchError
 
 ValueType = ty.TypeVar("ValueType")
 PrimitiveType = ty.TypeVar("PrimitiveType")

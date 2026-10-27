@@ -2,11 +2,10 @@ import os
 import sys
 import typing as ty
 from pathlib import Path
+
+from fileformats.core.decorators import classproperty, validated_property
+from fileformats.core.exceptions import FormatMismatchError
 from fileformats.core.fileset import FileSet
-from fileformats.core.exceptions import (
-    FormatMismatchError,
-)
-from fileformats.core.decorators import validated_property, classproperty
 
 
 class FsObject(FileSet, os.PathLike):  # type: ignore
@@ -81,14 +80,6 @@ class FsObject(FileSet, os.PathLike):  # type: ignore
         if sys.platform == "win32":
             return None
         return self.fspath.owner()
-
-    @property
-    def parent(self) -> Path:
-        return self.fspath.parent
-
-    @property
-    def parents(self) -> ty.Sequence[Path]:
-        return self.fspath.parents
 
     @property
     def parts(self) -> ty.Tuple[str, ...]:

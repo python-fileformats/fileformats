@@ -71,9 +71,9 @@ class L(WithOrderedClassifiers, UnicodeFile):
 
 class M(WithClassifier, UnicodeFile):
     classifiers_attr_name = "content_types"
-    content_types: ty.Optional[
-        ty.Tuple[ty.Type[FileSet], ...]
-    ] = None  # Should be None not ()
+    content_types: ty.Optional[ty.Tuple[ty.Type[FileSet], ...]] = (
+        None  # Should be None not ()
+    )
     ext = ".m"
 
 

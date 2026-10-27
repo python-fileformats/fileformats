@@ -6,8 +6,8 @@ build-backend = "hatchling.build"
 name = "fileformats"
 description = "Classes for representing different file formats in Python classes for use in type hinting in data workflows"
 readme = "README.md"
-requires-python = ">=3.8"
-dependencies = ["typing_extensions >=4.6.3; python_version < '3.11'"]
+requires-python = ">=3.11"
+dependencies = ["typing_extensions >=4.6.3; python_version < '3.13'"]
 license = { file = "LICENSE" }
 authors = [{ name = "Thomas G. Close", email = "tom.g.close@gmail.com" }]
 maintainers = [{ name = "Thomas G. Close", email = "tom.g.close@gmail.com" }]
@@ -20,7 +20,7 @@ keywords = [
     "MIME",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: Apache Software License",
@@ -45,6 +45,7 @@ dev = [
     "mypy >=1.5.1",
     "pydata-sphinx-theme >=0.13",
     "pydicom",                    # for typing
+    "types-PyYAML",               # for typing
 ]
 test = [
     "mypy >=1.5.1",
@@ -52,7 +53,7 @@ test = [
     "pytest-env>=0.6.2",
     "pytest-cov>=2.12.1",
     "pydra >=1.0a",
-    "fileformats-extras",
+    "fileformats-extras[application,model,image,text,audio,video,vendor_openxmlformats_officedocument]",
 ]
 docs = [
     "packaging",
@@ -66,7 +67,7 @@ docs = [
 ]
 
 [project.urls]
-repository = "https://github.com/ArcanaFramework/fileformats"
+repository = "https://github.com/python-fileformats/fileformats"
 
 
 [tool.hatch.version]
@@ -84,12 +85,11 @@ exclude = ["tests"]
 include = ["./fileformats"]
 
 [tool.black]
-target-version = ['py38']
+target-version = ['py311']
 exclude = "fileformats/core/_version.py"
 
 
 [tool.mypy]
-python_version = "3.8"
 ignore_missing_imports = true
 strict = true
 namespace_packages = true

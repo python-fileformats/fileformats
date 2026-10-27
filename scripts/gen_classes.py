@@ -1,8 +1,10 @@
-from pathlib import Path
+import json
 import re
 import shutil
-import json
+from pathlib import Path
+
 import yaml
+
 from fileformats.core.identification import from_mime_format_name
 
 

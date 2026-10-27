@@ -1,13 +1,16 @@
-from abc import ABCMeta
-import typing as ty
 import logging
-from .exceptions import FormatDefinitionError
+import typing as ty
+from abc import ABCMeta
+
 from .classifier import Classifier
 from .datatype import DataType
+from .exceptions import FormatDefinitionError
 
 if ty.TYPE_CHECKING:
     from pydra.compose.base import Task
+
     import fileformats.core
+
     from . import mixin
 
 logger = logging.getLogger("fileformats")
@@ -23,7 +26,7 @@ class SubtypeVar:
     AnyFileFormat = FileSet.type_var("AnyFileFormat")
 
     @converter
-    @python.define  # type: ignore[misc]
+    @python.define  # type: ignore[untyped-decorator]
     def unzip(in_file: Zip[AnyFileFormat], out_file: AnyFileFormat):
         ...
     """
@@ -156,6 +159,15 @@ class Converter:
         self.classifiers = classifiers
         self.in_file = in_file
         self.out_file = out_file
+
+    @property
+    def is_chain(self) -> bool:
+        """Whether the converter chains other converters together to convert via
+        intermediate formats"""
+        return (
+            type(self.task).__name__ == "ConverterChain"
+            and type(self.task).__module__ == "fileformats.core.converter_chain"
+        )
 
     def __eq__(self, other: object) -> bool:
         from pydra.utils.hash import hash_function

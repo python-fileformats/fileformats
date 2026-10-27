@@ -1,25 +1,46 @@
 from fileformats.core import __version__
-from .basic import Foo, Bar, Baz, Qux
+
+from .abstract import (
+    AbstractFile,
+    AbstractSubclass,
+    AnotherConcreteClass,
+    ConcreteClass,
+    ConvertibleToFile,
+)
+from .basic import Bar, Baz, Foo, Qux
+from .chains import (
+    AmbiguousDst,
+    AmbiguousMid1,
+    AmbiguousMid2,
+    AmbiguousSrc,
+    ChainDst,
+    ChainMid,
+    ChainSrc,
+    CycleA,
+    CycleB,
+    CycleC,
+)
+from .classifiers.file import A, B, C, D, E, F, G, H, J, K, L, M, N, P, Q, R, TestField
+from .classifiers.generic import Classified, U, V, W, X, Y, Z
 from .headers import (
-    YFile,
-    ZFile,
-    Xyz,
+    EncodedText,
+    ImageWithHeader,
+    MyBinaryFormat,
+    MyBinaryFormatX,
     MyFormat,
     MyFormatGz,
     MyFormatGzX,
     MyFormatX,
-    MyBinaryFormat,
     MyHeader,
-    MyBinaryFormatX,
     MyOtherBinaryFormatX,
-    YourFormat,
     SeparateHeader,
-    ImageWithHeader,
-    EncodedText,
+    Xyz,
+    YFile,
+    YourFormat,
+    ZFile,
 )
-from .classifiers.file import A, B, C, D, E, F, G, H, J, K, L, M, N, P, Q, R, TestField
-from .classifiers.generic import Classified, U, V, W, X, Y, Z
 from .magic import Magic, MagicVersion
+from .with_extras import WithExtra
 
 __all__ = [
     "__version__",
@@ -68,4 +89,20 @@ __all__ = [
     "Z",
     "Magic",
     "MagicVersion",
+    "AbstractFile",
+    "AbstractSubclass",
+    "ConcreteClass",
+    "AnotherConcreteClass",
+    "ConvertibleToFile",
+    "WithExtra",
+    "ChainSrc",
+    "ChainMid",
+    "ChainDst",
+    "CycleA",
+    "CycleB",
+    "CycleC",
+    "AmbiguousSrc",
+    "AmbiguousMid1",
+    "AmbiguousMid2",
+    "AmbiguousDst",
 ]

@@ -1,7 +1,9 @@
 import typing as ty
-from fileformats.generic import BinaryFile
-from .base import Image
+
 from fileformats.core.mixin import WithMagicNumber
+from fileformats.generic import BinaryFile
+
+from .base import Image
 
 
 class Aces(WithMagicNumber, BinaryFile, Image):

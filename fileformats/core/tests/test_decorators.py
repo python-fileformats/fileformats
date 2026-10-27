@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import time
 from fileformats.core.decorators import (
@@ -43,3 +44,32 @@ def test_not_enough_time_has_elapsed_given_mtime_resolution():
     assert not enough_time_has_elapsed_given_mtime_resolution(
         [("", 110), ("", 220), ("", 300)], 301
     )
+
+
+class MtimeBaseFile(UnicodeFile):
+
+    @mtime_cached_property
+    def order(self) -> str:
+        return "base"
+
+
+class MtimeSubFile(MtimeBaseFile):
+
+    @mtime_cached_property
+    def order(self) -> str:
+        return "sub:" + MtimeBaseFile.order.__get__(self)
+
+
+def test_mtime_cached_property_override_has_its_own_cache(tmp_path: Path):
+    """An override and the base property it calls cache separately. Filling the
+    base cache first, as a reader of the base implementation does, must not make
+    the override return the base value"""
+    fspath = tmp_path / "file.txt"
+    fspath.write_text("hello")
+    past = time.time() - 10  # old enough for the cache to be used
+    os.utime(fspath, (past, past))
+
+    file = MtimeSubFile(fspath)
+    assert MtimeBaseFile.order.__get__(file) == "base"
+    assert file.order == "sub:base"
+    assert MtimeBaseFile.order.__get__(file) == "base"

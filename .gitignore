@@ -5,6 +5,7 @@
 *~
 .DS_Store
 .coverage
+.claude
 .settings/
 *.swp
 .settings/

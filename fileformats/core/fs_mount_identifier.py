@@ -1,11 +1,12 @@
 import os
-import typing as ty
-import string
-from pathlib import Path
 import platform
 import re
-from contextlib import contextmanager
+import string
 import subprocess as sp
+import typing as ty
+from contextlib import contextmanager
+from pathlib import Path
+
 from .utils import logger
 
 PathLike = ty.Union[str, Path]
@@ -60,6 +61,16 @@ class FsMountIdentifier:
             the type of the file-system (e.g. ext4 or cifs)"""
         strpath = str(Path(path).absolute())
         mount_table = cls.get_mount_table()
+        if platform.system() == "Windows":
+            if strpath.startswith("\\\\?\\UNC\\"):
+                # \\?\UNC\server\share\... → \\server\share\...
+                strpath = "\\\\" + strpath[8:]
+            elif strpath.startswith("\\\\?\\"):
+                # \\?\DRIVE:\... → DRIVE:\...
+                strpath = strpath[4:]
+            # convert paths to lower case to avoid case-sensitivity
+            strpath = strpath.lower()
+            mount_table = [(k.lower(), v) for k, v in mount_table]
         matches = sorted(
             ((Path(p), t) for p, t in mount_table if strpath.startswith(p)),
             key=lambda m: len(str(m[0])),
@@ -88,13 +99,33 @@ class FsMountIdentifier:
             ]
             drives = []
             for drive_name in drive_names:
-                result = sp.run(
-                    ["fsutil", "fsinfo", "fstype", drive_name],
+                # Check if this drive is a mapped network share
+                unc_result = sp.run(
+                    ["net", "use", drive_name],
                     capture_output=True,
                     text=True,
                 )
-                fstype = result.stdout.strip().split(" ")[-1].lower()
-                drives.append((drive_name, fstype))
+                unc_path = None
+                if unc_result.returncode == 0:
+                    for line in unc_result.stdout.splitlines():
+                        parts = line.strip().split(None, 2)
+                        if len(parts) == 3 and parts[2].startswith("\\\\"):
+                            unc_path = parts[2].strip()
+                            break
+                if unc_path:
+                    # Mapped network drive — record UNC path as cifs
+                    drives.append((unc_path, "cifs"))
+                    # Also record the drive letter mapping to the UNC path
+                    # so paths expressed as DRIVE:\... are still matched
+                    drives.append((drive_name, "cifs"))
+                else:
+                    result = sp.run(
+                        ["fsutil", "fsinfo", "fstype", drive_name],
+                        capture_output=True,
+                        text=True,
+                    )
+                    fstype = result.stdout.strip().split(" ")[-1].lower()
+                    drives.append((drive_name, fstype))
             return drives
         exit_code, output = sp.getstatusoutput("mount")
         if exit_code != 0:
@@ -166,11 +197,9 @@ class FsMountIdentifier:
 
         Returns
         -------
-        mount_point: os.PathLike
-            the root of the mount the path sits on
         fstype : str
             the type of the file-system (e.g. ext4 or cifs)"""
-        mount_point, fstype = cls.get_mount(path)
+        _, fstype = cls.get_mount(path)
         try:
             resolution = cls.FS_MAX_MTIME_NS_RESOLUTION[fstype]
         except KeyError:

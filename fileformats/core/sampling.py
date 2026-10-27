@@ -1,10 +1,10 @@
-from pathlib import Path
 import random
 import string
-from functools import cached_property
 import typing as ty
-import fileformats.core
+from functools import cached_property
+from pathlib import Path
 
+import fileformats.core
 
 FILE_FILL_LENGTH_DEFAULT = 256
 

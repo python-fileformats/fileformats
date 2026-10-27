@@ -1,15 +1,12 @@
-from .core import __version__
-from fileformats.core.mixin import WithMagicNumber
-from fileformats.generic import UnicodeFile, BinaryFile, File
+from fileformats.generic import UnicodeFile
 
-
-class Text(File):
-    """Base class for text files"""
+from .base import Text
 
 
 # General formats
 class Plain(Text, UnicodeFile):
     iana_mime = "text/plain"
+    loaded_type = str
 
 
 class TextFile(Plain, UnicodeFile):
@@ -43,20 +40,11 @@ class RestructedText(Text, UnicodeFile):
     iana_mime = "text/x-rst"
 
 
-class _1d_interleaved_parityfec(Text, UnicodeFile):
+class _1dInterleavedParityfec(Text, UnicodeFile):
     """"""
 
     iana_mime = "text/1d-interleaved-parityfec"
     ext = None
-
-
-class CacheManifest(WithMagicNumber, Text, BinaryFile):
-    """"""
-
-    iana_mime = "text/cache-manifest"
-    ext = ".appcache"
-    alternate_exts = ('"manifest"',)
-    magic_number = b"CACHE MANIFEST"
 
 
 class Calendar(Text, UnicodeFile):
@@ -271,7 +259,7 @@ class Red(Text, UnicodeFile):
     ext = None
 
 
-class Rfc822_headers(Text, UnicodeFile):
+class Rfc822Headers(Text, UnicodeFile):
     """"""
 
     iana_mime = "text/rfc822-headers"
@@ -427,70 +415,3 @@ class XmlExternalParsedEntity(Text, UnicodeFile):
     iana_mime = "text/xml-external-parsed-entity"
     ext = ".ent"
     alternate_exts = (None,)
-
-
-from fileformats.application import (  # noqa
-    Json,
-    Xml,
-    Yaml,
-)  # These are sometimes/historically considered part of the text registry so we import them here
-
-
-__all__ = [
-    "__version__",
-    "Text",
-    "Plain",
-    "TextFile",
-    "Csv",
-    "Tsv",
-    "Html",
-    "Markdown",
-    "RestructedText",
-    "_1d_interleaved_parityfec",
-    "CacheManifest",
-    "Calendar",
-    "Cql",
-    "CqlExpression",
-    "CqlIdentifier",
-    "Css",
-    "CsvSchema",
-    "Dns",
-    "Encaprtp",
-    "Fhirpath",
-    "Flexfec",
-    "Fwdred",
-    "Gff3",
-    "GrammarRefList",
-    "Hl7v2",
-    "Javascript",
-    "JcrCnd",
-    "Mizar",
-    "N3",
-    "Parameters",
-    "Parityfec",
-    "ProvenanceNotation",
-    "Prs_Fallenstein_Rst",
-    "Prs_Lines_Tag",
-    "Prs_Prop_Logic",
-    "Raptorfec",
-    "Red",
-    "Rfc822_headers",
-    "RichText",
-    "RtpEncAescm128",
-    "Rtploopback",
-    "Rtx",
-    "Sgml",
-    "Shaclc",
-    "Shex",
-    "Spdx",
-    "Strings",
-    "T140",
-    "Troff",
-    "Turtle",
-    "Ulpfec",
-    "UriList",
-    "Vcard",
-    "Vtt",
-    "Wgsl",
-    "XmlExternalParsedEntity",
-]

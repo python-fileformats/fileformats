@@ -1,17 +1,19 @@
-from pathlib import Path
-import typing as ty
 import tempfile
+import typing as ty
+from pathlib import Path
+
 from pydra.compose import python
+
 from fileformats.core import converter
-from fileformats.image.raster import RasterImage, Bitmap, Gif, Jpeg, Png, Tiff
+from fileformats.image.raster import Bitmap, Gif, Jpeg, Png, RasterImage, Tiff
 
 
-@converter(target_format=Bitmap, output_format=Bitmap)  # type: ignore[misc]
-@converter(target_format=Gif, output_format=Gif)  # type: ignore[misc]
-@converter(target_format=Jpeg, output_format=Jpeg)  # type: ignore[misc]
-@converter(target_format=Png, output_format=Png)  # type: ignore[misc]
-@converter(target_format=Tiff, output_format=Tiff)  # type: ignore[misc]
-@python.define(outputs={"out_file": RasterImage})  # type: ignore[misc]
+@converter(target_format=Bitmap, output_format=Bitmap)  # type: ignore[untyped-decorator]
+@converter(target_format=Gif, output_format=Gif)  # type: ignore[untyped-decorator]
+@converter(target_format=Jpeg, output_format=Jpeg)  # type: ignore[untyped-decorator]
+@converter(target_format=Png, output_format=Png)  # type: ignore[untyped-decorator]
+@converter(target_format=Tiff, output_format=Tiff)  # type: ignore[untyped-decorator]
+@python.define(outputs={"out_file": RasterImage})  # type: ignore[untyped-decorator]
 def convert_image(
     in_file: RasterImage,
     output_format: ty.Type[RasterImage],

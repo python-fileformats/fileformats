@@ -1,7 +1,9 @@
 import typing as ty
-from fileformats.generic import BinaryFile, File
+
 from fileformats.core.mixin import WithMagicNumber
-from .serialization import Xml, Json
+from fileformats.generic import BinaryFile, File
+
+from .serialization import Json, Xml
 
 
 class _1dInterleavedParityfec(File):
@@ -1236,14 +1238,6 @@ class Gml__Xml(Xml):
 
     iana_mime = "application/gml+xml"
     ext = ".gml"
-
-
-class Gzip(WithMagicNumber, BinaryFile):
-    """anywhere data size is an issue"""
-
-    iana_mime = "application/gzip"
-    ext = ".gz"
-    magic_number = "1f8b"
 
 
 class H224(File):
@@ -3234,7 +3228,7 @@ class Tei__Xml(Xml):
     alternative_exts = (".teiCorpus", ".odd")
 
 
-class TetraIsi(File):
+class Tetra_isi(File):
     """"""
 
     iana_mime = "application/TETRA_ISI"

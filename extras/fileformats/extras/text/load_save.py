@@ -1,17 +1,18 @@
 import typing as ty
-from fileformats.core import extra_implementation, FileSet
+
+from fileformats.core import FileSet, extra_implementation
 from fileformats.text import Plain  # , Csv, Tsv
 
 # import pandas as pd
 
 
 @extra_implementation(FileSet.load)
-def load_text_file(text: Plain, **kwargs: ty.Any) -> Plain:
+def load_text_file(text: Plain, **kwargs: ty.Any) -> str:
     return text.raw_contents  # type: ignore[no-any-return]
 
 
 @extra_implementation(FileSet.save)
-def save_text_file(text: Plain, data: ty.Any, **kwargs: ty.Any) -> None:
+def save_text_file(text: Plain, data: str, **kwargs: ty.Any) -> None:
     text.fspath.write_text(data)
 
 

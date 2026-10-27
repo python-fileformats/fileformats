@@ -1,24 +1,20 @@
-from collections import Counter
 import itertools
 import typing as ty
+from collections import Counter
 from pathlib import Path
+
 import pytest
-from fileformats.core import (
-    find_matching,
-    to_mime,
-    from_mime,
-    from_paths,
-    FileSet,
-)
-from fileformats.generic import File, SetOf
-from fileformats.core.exceptions import FormatRecognitionError
-from fileformats.testing import Foo, Bar
-from fileformats.application import Json, Yaml, Zip
-from fileformats.text import Plain, TextFile
+
 import fileformats.text
+from fileformats.application import Json, Yaml, Zip
+from fileformats.core import FileSet, find_matching, from_mime, from_paths, to_mime
+from fileformats.core.exceptions import FormatRecognitionError
+from fileformats.generic import File, SetOf
+from fileformats.testing import Bar, Foo
+from fileformats.text import Plain, TextFile
 
 
-def test_format_detection(work_dir):
+def test_format_detection(work_dir) -> None:
     text_file = work_dir / "text.txt"
 
     with open(text_file, "w") as f:
@@ -32,41 +28,54 @@ def test_format_detection(work_dir):
     ]
 
 
-def test_to_from_mime_roundtrip():
+def test_to_from_mime_roundtrip() -> None:
     mime_str = to_mime(Foo, official=False)
     assert isinstance(mime_str, str)
     assert from_mime(mime_str) == Foo
 
 
-def test_to_from_list_mime_roundtrip():
-    mime_str = to_mime(ty.List[Foo], official=False)
+def test_to_from_list_mime_roundtrip() -> None:
+    mime_str = to_mime(list[Foo], official=False)
     assert isinstance(mime_str, str)
-    assert from_mime(mime_str) == ty.List[Foo]
+    assert from_mime(mime_str) == list[Foo]
 
 
-def test_to_from_union_mime_roundtrip():
-    mime_str = to_mime(ty.Union[Foo, Bar], official=False)
+def test_to_from_tuple_mime_roundtrip() -> None:
+    mime_str = to_mime(tuple[Foo], official=False)
     assert isinstance(mime_str, str)
-    assert from_mime(mime_str) == ty.Union[Foo, Bar]
+    assert from_mime(mime_str) == tuple[Foo]
 
 
-def test_to_from_list_union_mime_roundtrip():
-    mime_str = to_mime(ty.List[ty.Union[Foo, Bar]], official=False)
+def test_to_from_union_mime_roundtrip() -> None:
+    mime_str = to_mime(Foo | Bar, official=False)
     assert isinstance(mime_str, str)
-    assert from_mime(mime_str) == ty.List[ty.Union[Foo, Bar]]
+    assert from_mime(mime_str) == Foo | Bar
 
 
-def test_official_mime_fail():
+def test_to_from_list_union_mime_roundtrip() -> None:
+    mime_str = to_mime(list[Foo | Bar], official=False)
+    assert isinstance(mime_str, str)
+    assert from_mime(mime_str) == list[Foo | Bar]
+
+
+def test_to_from_mime_optional_roundtrip() -> None:
+    mime_str = to_mime(Foo | None, official=False)
+    assert isinstance(mime_str, str)
+    assert mime_str.endswith("?")
+    assert from_mime(mime_str) == Foo | None
+
+
+def test_official_mime_fail() -> None:
     with pytest.raises(TypeError, match="as it is not a proper file-type"):
         to_mime(ty.List[Foo], official=True)
 
 
-def test_repr():
+def test_repr() -> None:
     for frmt in FileSet.all_formats:
         assert repr(frmt.mock("/a/path")).startswith(f"{frmt.__name__}(")
 
 
-def test_set_repr_trunc():
+def test_set_repr_trunc() -> None:
     a = Path("/a/path").absolute()
     b = Path("/b/path").absolute()
     c = Path("/c/path").absolute()
@@ -76,7 +85,7 @@ def test_set_repr_trunc():
     )
 
 
-def test_from_paths(tmp_path):
+def test_from_paths(tmp_path) -> None:
     filesets = []
     filesets.append(Json.sample(tmp_path, seed=1))
     filesets.append(Json.sample(tmp_path, seed=2))

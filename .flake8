@@ -11,6 +11,6 @@ exclude =
     docs/source/conf.py
 max-line-length = 88
 select = C,E,F,W,B,B950
-extend-ignore = E203,E501,E129,W503,E701
+extend-ignore = E203,E501,E129,W503,E701,E704
 per-file-ignores =
     setup.py:F401

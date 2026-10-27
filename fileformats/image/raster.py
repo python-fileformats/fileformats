@@ -1,10 +1,12 @@
 import typing  # noqa: F401
 import typing as ty
+
 from fileformats.core import validated_property
-from fileformats.core.typing import TypeAlias
-from fileformats.core.mixin import WithMagicNumber
 from fileformats.core.exceptions import FormatMismatchError
+from fileformats.core.mixin import WithMagicNumber
+from fileformats.core.typing import TypeAlias
 from fileformats.generic import BinaryFile
+
 from .base import Image
 
 if ty.TYPE_CHECKING:
@@ -19,6 +21,7 @@ DataArrayType: TypeAlias = (
 class RasterImage(Image, BinaryFile):
     # iana_mime = None
     binary = True
+    loaded_type = "numpy.ndarray"
 
 
 class Bitmap(WithMagicNumber, RasterImage):
@@ -47,6 +50,10 @@ class Jpeg(WithMagicNumber, RasterImage):
     magic_number = "ffd8ffe0"
 
 
+# Add alias for image/jpg
+Jpg = Jpeg
+
+
 class Tiff(RasterImage):
 
     ext = ".tiff"
@@ -71,3 +78,11 @@ class Tiff(RasterImage):
                 f"'{self.magic_number_be}'"
             )
         return endianness
+
+
+class Cr2(RasterImage):
+    """Canon RAW image format (a TIFF-based container used by Canon cameras)."""
+
+    ext = ".CR2"
+    iana_mime = "image/x-canon-cr2"  # not an official IANA type, but the de facto
+    # identifier used by shared-mime-info, ExifTool, etc.

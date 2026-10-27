@@ -1,5 +1,5 @@
-from fileformats.generic import BinaryFile
 from fileformats.core.mixin import WithMagicNumber, WithMagicVersion
+from fileformats.generic import BinaryFile
 
 
 class Magic(WithMagicNumber, BinaryFile):

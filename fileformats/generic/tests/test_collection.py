@@ -80,11 +80,11 @@ def test_directory_optional_contents_pep604(tmp_path):
     EncodedText.sample(dest_dir=tmp_path)
     assert sample_dir.contents == [my_format]
 
-    optional_dir = DirectoryOf[MyFormatGz, YourFormat | None](sample_dir)
+    optional_dir = DirectoryOf[MyFormatGz, ty.Optional[YourFormat]](sample_dir)
     assert optional_dir.contents == [my_format]
 
     your_format = YourFormat.sample(dest_dir=tmp_path)
-    optional_dir = DirectoryOf[MyFormatGz, YourFormat | None](sample_dir)
+    optional_dir = DirectoryOf[MyFormatGz, ty.Optional[YourFormat]](sample_dir)
     assert optional_dir.contents == [my_format, your_format]
 
 
@@ -93,14 +93,14 @@ def test_set_optional_contents_pep604():
     my_format = MyFormatGz.sample()
     your_format = YourFormat.sample()
 
-    sample_set = SetOf[MyFormatGz, YourFormat | None](my_format)
+    sample_set = SetOf[MyFormatGz, ty.Optional[YourFormat]](my_format)
     assert sample_set.contents == [my_format]
     assert list(sample_set.required_paths()) == [my_format.fspath]
 
-    sample_set = SetOf[MyFormatGz, YourFormat | None](my_format, your_format)
+    sample_set = SetOf[MyFormatGz, ty.Optional[YourFormat]](my_format, your_format)
     assert sample_set.contents == [my_format, your_format]
     assert set(sample_set.required_paths()) == {my_format.fspath, your_format.fspath}
 
-    sample_set = SetOf[MyFormatGz | None](my_format)
+    sample_set = SetOf[ty.Optional[MyFormatGz]](my_format)
     assert sample_set.contents == [my_format]
     assert list(sample_set.required_paths()) == [my_format.fspath]

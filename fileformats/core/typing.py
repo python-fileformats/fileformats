@@ -3,9 +3,9 @@ import typing as ty
 from pathlib import Path
 
 if sys.version_info[:2] < (3, 11):
-    from typing_extensions import TypeAlias, Self
+    from typing_extensions import Self, TypeAlias
 else:
-    from typing import TypeAlias, Self
+    from typing import Self, TypeAlias
 
 if ty.TYPE_CHECKING:
     import fileformats.core

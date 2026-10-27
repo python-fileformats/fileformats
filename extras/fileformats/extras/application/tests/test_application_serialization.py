@@ -1,7 +1,6 @@
-# import sys
-# import pytest
-from fileformats.application import Json, Yaml
+from pathlib import Path
 
+from fileformats.application import Json, Yaml
 
 SAMPLE_JSON = (
     """{"a": "string field", "alist": [0, 1, 2, 3, 4, 5], """
@@ -23,27 +22,19 @@ anesteddict:
 """
 
 
-# @pytest.mark.xfail(
-#     sys.version_info.minor <= 9,
-#     reason="upstream Pydra issue with type-checking 'type' objects",
-# )
-def test_json_to_yaml(work_dir):
-    in_file = work_dir / "test.json"
+def test_json_to_yaml(tmp_path: Path):
+    in_file = tmp_path / "test.json"
     with open(in_file, "w") as f:
         f.write(SAMPLE_JSON)
     jsn = Json(in_file)
-    yml = Yaml.convert(jsn)
+    yml = Yaml.convert(jsn, out_dir=tmp_path)
     assert yml.raw_contents == SAMPLE_YAML
 
 
-# @pytest.mark.xfail(
-#     sys.version_info.minor <= 9,
-#     reason="upstream Pydra issue with type-checking 'type' objects",
-# )
-def test_yaml_to_json(work_dir):
-    in_file = work_dir / "test.yaml"
+def test_yaml_to_json(tmp_path: Path):
+    in_file = tmp_path / "test.yaml"
     with open(in_file, "w") as f:
-        f.write(SAMPLE_JSON)
+        f.write(SAMPLE_YAML)
     yml = Yaml(in_file)
-    jsn = Json.convert(yml)
+    jsn = Json.convert(yml, out_dir=tmp_path)
     assert jsn.raw_contents == SAMPLE_JSON

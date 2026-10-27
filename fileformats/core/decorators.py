@@ -1,10 +1,11 @@
+import time
 import typing as ty
 from pathlib import Path
-import time
 from threading import RLock
-import fileformats.core
-from .fs_mount_identifier import FsMountIdentifier
 
+import fileformats.core
+
+from .fs_mount_identifier import FsMountIdentifier
 
 PropReturn = ty.TypeVar("PropReturn")
 
@@ -19,7 +20,10 @@ class mtime_cached_property:
         self.func = func
         self.__doc__ = func.__doc__
         self.lock = RLock()
-        self._cache_name = f"_{func.__name__}_mtime_cache"
+        # Keyed by the qualified name, so an override in a subclass and the base
+        # property it calls (Base.prop.__get__(obj)) cache separately. With the
+        # bare name they shared one slot, and whichever ran first served both.
+        self._cache_name = f"_{func.__qualname__}_mtime_cache"
 
     def __get__(
         self,

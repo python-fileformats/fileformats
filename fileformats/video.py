@@ -1,10 +1,12 @@
+from fileformats.generic import BinaryFile
+
 from .core import __version__  # noqa
 from .core.mixin import WithMagicNumber
-from fileformats.generic import BinaryFile
 
 
 class Video(BinaryFile):
     "Base class for audio file formats"
+
     binary = True
     # iana_mime = None
     pass
@@ -37,7 +39,7 @@ class Ogg(WithMagicNumber, Video):
     magic_number = b"OggS"
 
 
-class _1d_interleaved_parityfec(Video):
+class _1dInterleavedParityfec(Video):
     """"""
 
     iana_mime = "video/1d-interleaved-parityfec"
@@ -67,7 +69,7 @@ class _3gpp2(Video):
     ext = None
 
 
-class _3gpp_tt(Video):
+class _3gppTt(Video):
     """"""
 
     iana_mime = "video/3gpp-tt"
@@ -173,14 +175,14 @@ class H264(Video):
     ext = None
 
 
-class H264_rcdo(Video):
+class H264Rcdo(Video):
     """"""
 
     iana_mime = "video/H264-RCDO"
     ext = None
 
 
-class H264_svc(Video):
+class H264Svc(Video):
     """"""
 
     iana_mime = "video/H264-SVC"
@@ -261,7 +263,7 @@ class Mp2t(Video):
     ext = None
 
 
-class Mp4v_es(Video):
+class Mp4vEs(Video):
     """"""
 
     iana_mime = "video/MP4V-ES"
@@ -275,7 +277,7 @@ class Mpv(Video):
     ext = None
 
 
-class Mpeg4_generic(Video):
+class Mpeg4Generic(Video):
     """"""
 
     iana_mime = "video/mpeg4-generic"
@@ -400,10 +402,10 @@ __all__ = [
     "Webm",
     "Quicktime",
     "Ogg",
-    "_1d_interleaved_parityfec",
+    "_1dInterleavedParityfec",
     "_3gpp",
     "_3gpp2",
-    "_3gpp_tt",
+    "_3gppTt",
     "Av1",
     "Bmpeg",
     "Bt656",
@@ -418,8 +420,8 @@ __all__ = [
     "H263_1998",
     "H263_2000",
     "H264",
-    "H264_rcdo",
-    "H264_svc",
+    "H264Rcdo",
+    "H264Svc",
     "H265",
     "H266",
     "Iso_Segment",
@@ -430,9 +432,9 @@ __all__ = [
     "Mp1s",
     "Mp2p",
     "Mp2t",
-    "Mp4v_es",
+    "Mp4vEs",
     "Mpv",
-    "Mpeg4_generic",
+    "Mpeg4Generic",
     "Nv",
     "Parityfec",
     "Pointer",

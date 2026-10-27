@@ -1,9 +1,11 @@
-from pathlib import Path
 import os.path
 import random
 import shutil
 import time
+import warnings
 import typing as ty
+from pathlib import Path
+
 import pytest
 from fileformats.generic import File, BinaryFile, Directory, FsObject, SetOf
 from fileformats.core import (
@@ -13,10 +15,15 @@ from fileformats.core import (
     mtime_cached_property,
 )
 from fileformats.text import TextFile
+from fileformats.core.exceptions import (
+    FileFormatsNotRelativePathError,
+    UnsatisfiableCopyModeError,
+)
 from fileformats.core.mixin import WithSeparateHeader
-from fileformats.core.exceptions import UnsatisfiableCopyModeError
-from conftest import write_test_file
+from fileformats.core.utils import collate_metadata_series
+from fileformats.testing import Foo
 
+from conftest import write_test_file
 
 class Mario(BinaryFile):
     ext = ".mario"
@@ -448,6 +455,136 @@ def test_decompose_fspaths(work_dir):
     assert decomposed == [(work_dir, "file.luigi", ".mario")]
 
 
+def test_decompose_fspaths_drops_subpaths(work_dir):
+    sub_dir = work_dir / "sub"
+    sub_dir.mkdir()
+    Path.touch(sub_dir / "nested.mario")
+    Path.touch(sub_dir / "deeper.mario")
+    Path.touch(work_dir / "sibling.mario")
+
+    fileset = FileSet(
+        [
+            sub_dir,
+            sub_dir / "nested.mario",
+            sub_dir / "deeper.mario",
+            work_dir / "sibling.mario",
+        ]
+    )
+
+    decomposed = fileset.decomposed_fspaths(required_only=False)
+
+    assert sorted(decomposed) == [
+        (work_dir, "sibling", ".mario"),
+        (work_dir, "sub", ""),
+    ]
+
+
+def test_decompose_fspaths_ignores_external_nested_filesets(work_dir):
+    class MarioWithExternals(Mario):
+        @validated_property
+        def sidecar(self):
+            # extension isn't constrained
+            return File(self.fspath.with_suffix(".sidecar"))
+
+        @validated_property
+        def header(self):
+            # extension is constrained
+            return Mario(self.fspath.with_name("header.mario"))
+
+    fspath = work_dir / "file.mario"
+    Path.touch(fspath)
+    Path.touch(work_dir / "file.sidecar")
+    Path.touch(work_dir / "header.mario")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        decomposed = MarioWithExternals(fspath).decomposed_fspaths()
+
+    assert decomposed == [(work_dir, "file", ".mario")]
+
+
+def test_decompose_fspaths_nested_fileset_in_directory(work_dir):
+    class MarioDir(Directory):
+        @validated_property
+        def header(self):
+            return Mario(self.fspath / "header.mario")
+
+    mario_dir = work_dir / "mario_dir"
+    mario_dir.mkdir()
+    Path.touch(mario_dir / "header.mario")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        decomposed = MarioDir(mario_dir).decomposed_fspaths()
+
+    assert decomposed == [(work_dir, "mario_dir", "")]
+
+
+def test_decompose_fspaths_required_file_in_unrequired_directory(work_dir):
+    class NestedMario(FileSet):
+        @validated_property
+        def header(self):
+            return Mario(next(p for p in self.fspaths if p.is_file()))
+
+    sub_dir = work_dir / "sub"
+    sub_dir.mkdir()
+    Path.touch(sub_dir / "header.mario")
+    Path.touch(sub_dir / "other.mario")
+
+    fileset = NestedMario([sub_dir, sub_dir / "header.mario"])
+
+    # The directory isn't required, so the required file nested within it shouldn't
+    # be dropped in favour of it
+    assert fileset.decomposed_fspaths(required_only=True) == [
+        (sub_dir, "header", ".mario")
+    ]
+    assert fileset.decomposed_fspaths(required_only=False) == [(work_dir, "sub", "")]
+
+
+def test_copy_trimmed_required_file_in_unrequired_directory(work_dir):
+    class NestedMario(FileSet):
+        @validated_property
+        def header(self):
+            return Mario(next(p for p in self.fspaths if p.is_file()))
+
+    src_dir = work_dir / "src"
+    sub_dir = src_dir / "sub"
+    sub_dir.mkdir(parents=True)
+    (sub_dir / "header.mario").write_text("header")
+    (sub_dir / "other.mario").write_text("other")
+    dest_dir = work_dir / "dest"
+    dest_dir.mkdir()
+
+    fileset = NestedMario([sub_dir, sub_dir / "header.mario"])
+    copied = fileset.copy(dest_dir, trim=True)
+
+    assert [p.relative_to(dest_dir) for p in copied.fspaths] == [
+        Path("sub") / "header.mario"
+    ]
+    assert (dest_dir / "sub" / "header.mario").read_text() == "header"
+    assert not (dest_dir / "sub" / "other.mario").exists()
+
+
+def test_copy_with_subpaths(work_dir):
+    src_dir = work_dir / "src"
+    src_dir.mkdir()
+    sub_dir = src_dir / "sub"
+    sub_dir.mkdir()
+    (sub_dir / "nested.mario").write_text("nested")
+    (src_dir / "sibling.mario").write_text("sibling")
+    dest_dir = work_dir / "dest"
+    dest_dir.mkdir()
+
+    fileset = FileSet([sub_dir, sub_dir / "nested.mario", src_dir / "sibling.mario"])
+    copied = fileset.copy(dest_dir, trim=False)
+
+    assert sorted(p.relative_to(dest_dir) for p in copied.fspaths) == [
+        Path("sibling.mario"),
+        Path("sub"),
+    ]
+    assert (dest_dir / "sub" / "nested.mario").read_text() == "nested"
+
+
 def test_hash(tmp_path: Path):
     file_1 = tmp_path / "file_1.txt"
     file_2 = tmp_path / "file_2.txt"
@@ -530,7 +667,7 @@ def test_hash_mtime(tmp_path: Path):
 def test_hash_files(fsobject: FsObject, work_dir: Path, dest_dir: Path):
     file_hashes = fsobject.hash_files(relative_to=work_dir)
     assert sorted(Path(p) for p in file_hashes) == sorted(
-        p.relative_to(work_dir) for p in fsobject.all_file_paths
+        p.relative_to(work_dir) for p in fsobject.all_file_paths()
     )
     cpy = fsobject.copy(dest_dir)
     assert cpy.hash_files() == fsobject.hash_files()
@@ -582,3 +719,167 @@ def test_hash_mock_files(mock_fileset: MockMixin, work_dir: Path, dest_dir: Path
     assert sorted(Path(p) for p in file_hashes) == sorted(
         p for p in mock_fileset.fspaths
     )
+def test_all_file_paths(work_dir: Path):
+    sub_dir = work_dir / "sub"
+    deep_dir = sub_dir / "deep"
+    deep_dir.mkdir(parents=True)
+    Path.touch(sub_dir / "b.mario")
+    Path.touch(sub_dir / "a.mario")
+    Path.touch(deep_dir / "c.mario")
+    Path.touch(work_dir / "sibling.mario")
+
+    # "a.mario" is both listed explicitly and nested within the listed directory
+    fileset = FileSet([sub_dir, sub_dir / "a.mario", work_dir / "sibling.mario"])
+    all_file_paths = fileset.all_file_paths()
+
+    assert [p.relative_to(work_dir) for p in all_file_paths] == [
+        Path("sibling.mario"),
+        Path("sub") / "a.mario",
+        Path("sub") / "b.mario",
+        Path("sub") / "deep" / "c.mario",
+    ]
+
+
+def test_all_file_paths_ignore_hidden(work_dir: Path):
+    sub_dir = work_dir / "sub"
+    hidden_dir = sub_dir / ".hidden"
+    below_hidden_dir = hidden_dir / "below"
+    below_hidden_dir.mkdir(parents=True)
+    Path.touch(sub_dir / "a.mario")
+    Path.touch(sub_dir / ".b.mario")
+    Path.touch(hidden_dir / "c.mario")
+    Path.touch(below_hidden_dir / "d.mario")
+    Path.touch(work_dir / ".listed.mario")
+
+    # Explicitly listed paths are always included, even if they are hidden
+    fileset = FileSet([sub_dir, work_dir / ".listed.mario"])
+
+    def rel_paths(**kwargs: bool) -> ty.List[str]:
+        return [
+            p.relative_to(work_dir).as_posix() for p in fileset.all_file_paths(**kwargs)
+        ]
+
+    assert rel_paths() == [
+        ".listed.mario",
+        "sub/.b.mario",
+        "sub/.hidden/below/d.mario",
+        "sub/.hidden/c.mario",
+        "sub/a.mario",
+    ]
+    assert rel_paths(ignore_hidden_files=True) == [
+        ".listed.mario",
+        "sub/.hidden/below/d.mario",
+        "sub/.hidden/c.mario",
+        "sub/a.mario",
+    ]
+    assert rel_paths(ignore_hidden_dirs=True) == [
+        ".listed.mario",
+        "sub/.b.mario",
+        "sub/a.mario",
+    ]
+    assert rel_paths(ignore_hidden_files=True, ignore_hidden_dirs=True) == [
+        ".listed.mario",
+        "sub/a.mario",
+    ]
+
+
+def test_all_file_paths_broken_symlink(work_dir: Path):
+    sub_dir = work_dir / "sub"
+    sub_dir.mkdir()
+    Path.touch(sub_dir / "a.mario")
+    (sub_dir / "broken.mario").symlink_to(work_dir / "missing.mario")
+
+    fileset = FileSet(sub_dir)
+
+    with pytest.raises(FileNotFoundError, match="Broken symbolic link"):
+        fileset.all_file_paths()
+    with pytest.raises(FileNotFoundError, match="Broken symbolic link"):
+        fileset.hash_files()
+
+
+def test_byte_chunks_keys_of_mock_unchanged_by_creation(work_dir: Path):
+    """The keys of a mocked fileset don't depend on whether its files exist, so its
+    hash doesn't change if they are created (e.g. by the task it is passed to)"""
+    fspath = work_dir / "new.mario"
+    mock = FileSet.mock(fspath)
+    keys = [k for k, _ in mock.byte_chunks()]
+    fspath.touch()
+    assert [k for k, _ in mock.byte_chunks()] == keys == ["."]
+
+
+def test_byte_chunks_matches_all_file_paths(work_dir: Path):
+    sub_dir = work_dir / "sub"
+    below_hidden_dir = sub_dir / ".hidden" / "below"
+    below_hidden_dir.mkdir(parents=True)
+    (sub_dir / "deep").mkdir()
+    Path.touch(sub_dir / "z.mario")
+    Path.touch(sub_dir / "deep" / "c.mario")
+    Path.touch(below_hidden_dir / "d.mario")
+
+    # "z.mario" is both listed explicitly and nested within the listed directory
+    fileset = FileSet([sub_dir, sub_dir / "z.mario"])
+
+    for ignore_hidden_dirs in (False, True):
+        # Keys use the native path separator, so compare them as paths
+        keys = [
+            Path(k)
+            for k, _ in fileset.byte_chunks(
+                relative_to=work_dir, ignore_hidden_dirs=ignore_hidden_dirs
+            )
+        ]
+        assert keys == [
+            p.relative_to(work_dir)
+            for p in fileset.all_file_paths(ignore_hidden_dirs=ignore_hidden_dirs)
+        ]
+    assert keys == [Path("sub") / "deep" / "c.mario", Path("sub") / "z.mario"]
+
+
+def test_hash_files_keys(tmp_path: Path):
+    one = Foo.sample(tmp_path, stem="foo-one")
+    two = Foo.sample(tmp_path, stem="foo-two")
+    three = Foo.sample(tmp_path, stem="foo-three")
+    fset = FileSet([one, two, three])
+    assert set(fset.hash_files()) == {"one.foo", "two.foo", "three.foo"}
+    assert set(fset.hash_files(relative_to=tmp_path / "fo")) == {  # codespell:ignore
+        "o-one.foo",
+        "o-two.foo",
+        "o-three.foo",
+    }
+    assert set(one.hash_files(relative_to=one.fspath)) == {"."}
+    with pytest.raises(FileFormatsNotRelativePathError):
+        fset.hash_files(relative_to=tmp_path / "bar")
+
+
+def test_hash_files_threaded_matches_serial(tmp_path: Path):
+    dpath = tmp_path / "dir"
+    (dpath / "sub").mkdir(parents=True)
+    for i in range(20):
+        (dpath / ("sub" if i % 2 else "") / f"{i}.txt").write_bytes(
+            os.urandom(random.randint(0, 3 * 8192))
+        )
+    directory = Directory(dpath)
+    serial = directory.hash_files(max_workers=1)
+    assert len(serial) == 20
+    assert directory.hash_files() == serial
+    assert directory.hash_files(max_workers=4) == serial
+    assert list(directory.hash_files(max_workers=4)) == list(serial)
+
+
+def test_metadata_collation1():
+    metadata_series = [
+        {"a": 1, "b": 2},
+        {"a": 1, "b": 3},
+        {"a": 1, "b": 2},
+    ]
+    collated = collate_metadata_series(metadata_series)
+    assert collated == {"a": 1, "b": [2, 3, 2]}
+
+
+def test_metadata_collation2():
+    metadata_series = [
+        {"a": 1, "b": 2, "c": "foo"},
+        {"a": 1, "b": 2, "c": "foo"},
+        {"a": 1, "b": 3, "c": "foo"},
+    ]
+    collated = collate_metadata_series(metadata_series)
+    assert collated == {"a": 1, "b": [2, 2, 3], "c": "foo"}

@@ -39,3 +39,17 @@ class FileFormatsExtrasPkgUninstalledError(FileFormatsExtrasError):
 class FileFormatsExtrasPkgNotCheckedError(FileFormatsExtrasError):
     """If there is an "extra" hook in the datatype class and a extras package on PyPI
     but it hasn't been installed"""
+
+
+class FileFormatsClashingExtrasImplementationError(FileFormatsExtrasError):
+    """If there is an "extra" hook in the datatype class but no methods have been
+    registered on it"""
+
+
+class FileFormatsExtrasNotImplementedError(FileFormatsExtrasError, NotImplementedError):
+    """If there is an "extra" hook in the datatype class but no methods have been
+    registered on it"""
+
+
+class FileFormatsNotRelativePathError(FileFormatsError, ValueError):
+    """If a relative path operation is attempted on a non-relative path"""

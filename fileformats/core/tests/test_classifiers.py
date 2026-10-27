@@ -1,28 +1,32 @@
 from __future__ import annotations
+
 import decimal
+
 import pytest
 from pydra.compose import python
-from fileformats.core import from_mime, DataType, FileSet
-from fileformats.core import converter
-from fileformats.application import Zip
-from fileformats.generic import DirectoryOf
-from fileformats.field import Array, Integer, Decimal, Text, Boolean
+
+from fileformats.application import Json, Zip
+from fileformats.application.serialization import InformalSchema
+from fileformats.core import DataType, FileSet, converter, from_mime
 from fileformats.core.exceptions import (
-    FormatDefinitionError,
     FormatConversionError,
-    FormatRecognitionError,
+    FormatDefinitionError,
     FormatMismatchError,
+    FormatRecognitionError,
 )
+from fileformats.field import Array, Boolean, Decimal, Integer, Text
+from fileformats.generic import DirectoryOf
 from fileformats.testing import (
     A,
     B,
     C,
+    Classified,
     D,
     E,
     F,
     G,
     H,
-    J,
+    J,  # Y,
     K,
     L,
     M,
@@ -31,15 +35,12 @@ from fileformats.testing import (
     Q,
     R,
     TestField,
-    Classified,
     U,
     V,
     W,
     X,
-    # Y,
     Z,
 )
-
 
 SpecificDataType = DataType.type_var("SpecificDataType")
 SpecificFileSet = FileSet.type_var("SpecificFileSet")
@@ -187,7 +188,7 @@ def test_file_classifiers7():
 
 @converter(source_format=F[A], target_format=H[A])  # Additional converter
 @converter
-@python.define(outputs=["out_file"])  # type: ignore[misc]
+@python.define(outputs=["out_file"])  # type: ignore[untyped-decorator]
 def f2h(in_file: F) -> H:
     return in_file
 
@@ -212,7 +213,7 @@ def test_qualifier_converters():
 @converter(source_format=K[C, D], target_format=L[D, C])
 @converter(source_format=K[A, B, C], target_format=L[A, B])
 @converter(source_format=K[A, C, B], target_format=L[C, A])
-@python.define(outputs=["out_file"])  # type: ignore[misc]
+@python.define(outputs=["out_file"])  # type: ignore[untyped-decorator]
 def k2l(in_file: K) -> L:
     return in_file
 
@@ -234,17 +235,81 @@ def test_mime_roundtrips():
     assert from_mime("testing/f+directory-of") is DirectoryOf[F]
 
     # Directory is unordered so sort classifiers to create unique mime
-    assert DirectoryOf[H, F].mime_like == "testing/f.h+directory-of"
-    assert from_mime("testing/f.h+directory-of") is DirectoryOf[F, H]
+    assert DirectoryOf[H, F].mime_like == "testing/f..h+directory-of"
+    assert from_mime("testing/f..h+directory-of") is DirectoryOf[F, H]
 
     # K is ordered
-    assert K[B, A].mime_like == "testing/b.a+k"
-    assert from_mime("testing/b.a+k") is K[B, A]
-    assert from_mime("testing/b.a+k") is not K[A, B]
+    assert K[B, A].mime_like == "testing/b..a+k"
+    assert from_mime("testing/b..a+k") is K[B, A]
+    assert from_mime("testing/b..a+k") is not K[A, B]
 
-    with pytest.raises(FormatRecognitionError) as e:
-        Array[TestField].mime_like
-    assert "Cannot create reversible MIME type for " in str(e)
+    # Classifiers from other namespaces include their namespace
+    assert Array[TestField].mime_like == "field/[testing/test-field]+array"
+    assert from_mime("field/[testing/test-field]+array") is Array[TestField]
+
+
+def test_nested_mime_roundtrips():
+    # Classified classifiers are enclosed in brackets
+    assert Zip[K[B, A]].mime_like == "testing/[b..a+k]+zip"
+    assert from_mime("testing/[b..a+k]+zip") is Zip[K[B, A]]
+
+    assert K[K[B, A], A].mime_like == "testing/[b..a+k]..a+k"
+    assert from_mime("testing/[b..a+k]..a+k") is K[K[B, A], A]
+
+    assert Zip[Zip[K[B, A]]].mime_like == "testing/[[b..a+k]+zip]+zip"
+    assert from_mime("testing/[[b..a+k]+zip]+zip") is Zip[Zip[K[B, A]]]
+
+    # Classified classifiers from other namespaces include their namespace
+    assert (
+        K[Json[InformalSchema], A].mime_like
+        == "testing/[application/informal-schema+json]..a+k"
+    )
+    assert from_mime("testing/[application/informal-schema+json]..a+k") is (
+        K[Json[InformalSchema], A]
+    )
+    assert (
+        Zip[K[Json[InformalSchema], A]].mime_like
+        == "testing/[[application/informal-schema+json]..a+k]+zip"
+    )
+    assert from_mime("testing/[[application/informal-schema+json]..a+k]+zip") is (
+        Zip[K[Json[InformalSchema], A]]
+    )
+
+    # Class names are how the types are written
+    assert Zip[K[B, A]].__name__ == "Zip[K[B, A]]"
+
+
+@pytest.mark.parametrize(
+    "mime_str",
+    [
+        "testing/b..a+k+zip",  # nested classifier not in brackets
+        "testing/[b..a+k+zip",  # unbalanced
+        "testing/b..a+k]+zip",  # unbalanced
+        "testing/[b]x..a+k",  # brackets not enclosing whole classifier
+        "[testing/b..a+k]",  # no namespace
+    ],
+)
+def test_nested_mime_fail(mime_str):
+    with pytest.raises(FormatRecognitionError):
+        from_mime(mime_str)
+
+
+def test_mime_fail():
+    class BadFormat(DataType):
+        pass
+
+    with pytest.raises(FormatDefinitionError, match="Cannot determine namespace"):
+        BadFormat.namespace
+
+
+def test_vendor_mime_fail():
+    class BadVendorFormat(DataType):
+        pass
+
+    BadVendorFormat.__module__ = "fileformats.vendor.badnamespace"
+
+    with pytest.raises(FormatDefinitionError, match="Cannot determine namespace"):
+        BadVendorFormat.namespace
 
 
 def test_inherited_classifiers():
@@ -294,19 +359,19 @@ def test_arrays():
 
 
 @converter
-@python.define(outputs=["out_file"])  # type: ignore[misc]
+@python.define(outputs=["out_file"])  # type: ignore[untyped-decorator]
 def f2n_template(in_file: F[SpecificDataType]) -> N[SpecificDataType]:
     return in_file
 
 
 @converter
-@python.define(outputs=["out_file"])  # type: ignore[misc]
+@python.define(outputs=["out_file"])  # type: ignore[untyped-decorator]
 def f2p_template(in_file: F[SpecificDataType]) -> P[SpecificDataType]:
     return in_file
 
 
 @converter
-@python.define(outputs=["out_file"])  # type: ignore[misc]
+@python.define(outputs=["out_file"])  # type: ignore[untyped-decorator]
 def p2n_template(in_file: P[SpecificDataType]) -> N[SpecificDataType]:
     return in_file
 
@@ -321,13 +386,13 @@ def test_wildcard_template_from_template_conversion():
 
 
 @converter
-@python.define(outputs=["out_file"])  # type: ignore[misc]
+@python.define(outputs=["out_file"])  # type: ignore[untyped-decorator]
 def generic2f(in_file: SpecificDataType) -> F[SpecificDataType]:
     return in_file
 
 
 @converter
-@python.define(outputs=["out_file"])  # type: ignore[misc]
+@python.define(outputs=["out_file"])  # type: ignore[untyped-decorator]
 def generic2n(in_file: SpecificDataType) -> N[SpecificDataType, H]:
     return in_file
 
@@ -363,13 +428,13 @@ def test_wildcard_template_from_generic_conversion6():
 
 
 @converter
-@python.define(outputs=["out_file"])  # type: ignore[misc]
+@python.define(outputs=["out_file"])  # type: ignore[untyped-decorator]
 def f2generic(in_file: F[SpecificFileSet]) -> SpecificFileSet:
     return in_file
 
 
 @converter
-@python.define(outputs=["out_file"])  # type: ignore[misc]
+@python.define(outputs=["out_file"])  # type: ignore[untyped-decorator]
 def n2generic(in_file: N[SpecificFileSet, G]) -> SpecificFileSet:
     return in_file
 
@@ -387,7 +452,7 @@ def test_wildcard_generic_from_multi_template_conversion():
 
 
 @converter
-@python.define(outputs=["out_file"])  # type: ignore[misc]
+@python.define(outputs=["out_file"])  # type: ignore[untyped-decorator]
 def l2r(in_file: L[A, SpecificFileSet, C]) -> R[A, SpecificFileSet, C, D]:
     return in_file
 
@@ -429,4 +494,5 @@ def test_classifier_categories6():
         FormatDefinitionError,
         match="Cannot have more than one occurrence of a classifier ",
     ):
+        Classified[C, E]
         Classified[C, E]

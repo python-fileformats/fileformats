@@ -1,10 +1,9 @@
-from fileformats.core import __version__, FileSet
-from .fsobject import FsObject
-from .file import File, BinaryFile, UnicodeFile
-from .directory import Directory, TypedDirectory, DirectoryOf
-from .set import TypedSet, SetOf
-from . import generate_sample_data  # noqa: F401
+from fileformats.core import FileSet, __version__
 
+from .directory import Directory, DirectoryOf, TypedDirectory
+from .file import BinaryFile, File, UnicodeFile
+from .fsobject import FsObject
+from .set import SetOf, TypedSet
 
 __all__ = [
     "__version__",

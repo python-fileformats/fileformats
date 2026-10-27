@@ -1,16 +1,15 @@
 import typing as ty
 from pathlib import Path
+
+from fileformats.core.collection import TypedCollection
+from fileformats.core.decorators import mtime_cached_property, validated_property
 from fileformats.core.exceptions import FormatMismatchError
-from fileformats.core.decorators import (
-    validated_property,
-    mtime_cached_property,
-)
-from .fsobject import FsObject
-from fileformats.core.fileset import FileSet, FILE_CHUNK_LEN_DEFAULT
+from fileformats.core.fileset import FILE_CHUNK_LEN_DEFAULT, FileSet
 from fileformats.core.mixin import WithClassifiers
 from fileformats.core.typing import CryptoMethod
-from fileformats.core.collection import TypedCollection
+
 from .file import File
+from .fsobject import FsObject
 
 
 class Directory(FsObject):
@@ -55,6 +54,7 @@ class Directory(FsObject):
         relative_to: ty.Optional[Path] = None,
         ignore_hidden_files: bool = False,
         ignore_hidden_dirs: bool = False,
+        max_workers: ty.Optional[int] = None,
     ) -> ty.Dict[str, str]:
         if relative_to is None:
             relative_to = self.fspath
@@ -65,6 +65,7 @@ class Directory(FsObject):
             relative_to=relative_to,
             ignore_hidden_files=ignore_hidden_files,
             ignore_hidden_dirs=ignore_hidden_dirs,
+            max_workers=max_workers,
         )
 
     @property

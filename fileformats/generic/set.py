@@ -1,9 +1,10 @@
-import typing as ty
 import itertools
+import typing as ty
 from pathlib import Path
+
 from fileformats.core import FileSet
-from fileformats.core.mixin import WithClassifiers
 from fileformats.core.collection import TypedCollection
+from fileformats.core.mixin import WithClassifiers
 
 
 class TypedSet(TypedCollection):
@@ -27,7 +28,11 @@ class TypedSet(TypedCollection):
         return f"{self.type_name}({paths_repr})"
 
     def required_paths(self) -> ty.FrozenSet[Path]:
-        return frozenset(itertools.chain(*(c.required_paths() for c in self.contents)))
+        # Use the unsorted (and uncached) contents, as sub-classes may sort them in ways
+        # that are expensive to compute (e.g. DicomSeries reads the header of every file
+        # to sort by SOPInstanceUID), and the order doesn't matter here
+        contents = TypedCollection.contents.func(self)
+        return frozenset(itertools.chain(*(c.required_paths() for c in contents)))
 
 
 class SetOf(WithClassifiers, TypedSet):  # type: ignore[misc]

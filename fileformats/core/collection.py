@@ -1,7 +1,8 @@
 import typing as ty
+from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from abc import ABCMeta, abstractproperty
-from fileformats.core import FileSet, validated_property, mtime_cached_property
+
+from fileformats.core import FileSet, mtime_cached_property, validated_property
 from fileformats.core.decorators import classproperty
 from fileformats.core.exceptions import FormatMismatchError
 from fileformats.core.utils import get_optional_type
@@ -15,9 +16,9 @@ class TypedCollection(FileSet, metaclass=ABCMeta):
         ty.Union[ty.Type[FileSet], ty.Type[ty.Optional[FileSet]]], ...
     ] = ()
 
-    @abstractproperty
-    def content_fspaths(self) -> ty.Iterable[Path]:
-        ...  # noqa: E704
+    @property
+    @abstractmethod
+    def content_fspaths(self) -> ty.Iterable[Path]: ...  # noqa: E704
 
     @mtime_cached_property
     def contents(self) -> ty.List[FileSet]:

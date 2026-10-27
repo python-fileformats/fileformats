@@ -1,6 +1,7 @@
-from fileformats.generic import UnicodeFile, BinaryFile
 from fileformats.application import Json
-from fileformats.core.mixin import WithSideCars, WithSeparateHeader, WithMagicNumber
+from fileformats.core import extra
+from fileformats.core.mixin import WithMagicNumber, WithSeparateHeader, WithSideCars
+from fileformats.generic import BinaryFile, UnicodeFile
 
 
 class YFile(UnicodeFile):
@@ -21,15 +22,19 @@ class MyFormat(UnicodeFile):
 
     ext = ".my"
 
+    @extra
+    def dummy_extra(self) -> int:  # type: ignore[empty-body]
+        ...  # type: ignore[empty-body]
+
 
 class MyFormatGz(MyFormat):
 
     ext = ".my.gz"
 
 
-class MyFormatX(WithSideCars, MyFormat):
+class MyFormatX(WithSeparateHeader, MyFormat):
 
-    side_car_types = (Json,)
+    header_type = Json
 
 
 class MyBinaryFormat(WithMagicNumber, UnicodeFile):
@@ -41,7 +46,7 @@ class MyHeader(UnicodeFile):
     ext = ".myhdr"
 
 
-class MyBinaryFormatX(WithSeparateHeader, MyFormat):
+class MyBinaryFormatX(WithSeparateHeader, MyBinaryFormat):
     header_type = MyHeader
 
 
@@ -56,7 +61,7 @@ class YourFormat(UnicodeFile):
     ext = ".yr"
 
 
-class SeparateHeader(UnicodeFile):
+class SeparateHeader(Json):
 
     ext = ".hdr"
 

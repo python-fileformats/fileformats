@@ -1,5 +1,6 @@
-from fileformats.generic import UnicodeFile
 from fileformats.application import InformalSchema, Xml
+from fileformats.generic import UnicodeFile
+
 from .base import Image
 
 

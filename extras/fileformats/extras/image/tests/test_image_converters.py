@@ -1,17 +1,16 @@
-# import sys
 import pytest
-from imageio.core.fetching import get_remote_file
 from fileformats.image import Bitmap, Gif, Jpeg, Png, Tiff
+from imageio.core.fetching import get_remote_file
 
 
 @pytest.fixture(scope="session")
 def jpg() -> Jpeg:
-    # imageio.imread("imageio:bricks.jpg")
     return Jpeg(get_remote_file("images/bricks.jpg"))
 
 
 @pytest.fixture(scope="session")
 def png() -> Png:
+
     return Png(get_remote_file("images/chelsea.png"))
 
 
