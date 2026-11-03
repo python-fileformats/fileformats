@@ -211,11 +211,26 @@ def find_extra_implementation(
     return implementation
 
 
+# Implementations outside of extras packages that were registered with overridable=True
+_OVERRIDABLE_IMPLEMENTATIONS: ty.Set[ty.Callable[..., ty.Any]] = set()
+
+
 def extra_implementation(
     method: ExtraMethod,
+    overridable: bool = False,
 ) -> ty.Callable[[ExtraImplementation], ExtraImplementation]:
     """A decorator which uses singledispatch to facilitate the registering of
-    "extra" functionality in external packages (e.g. "fileformats-extras")"""
+    "extra" functionality in external packages (e.g. "fileformats-extras")
+
+    Parameters
+    ----------
+    method : Callable
+        the extra method to implement, e.g. ``FileSet.load``
+    overridable : bool
+        whether another implementation can replace this one for the same type. Always
+        the case for implementations in extras packages, this is for ones without
+        external dependencies that are defined alongside the format in the main package
+    """
     try:
         dispatch_method = method._dispatch  # type: ignore[attr-defined]
     except AttributeError:
@@ -421,6 +436,7 @@ def extra_implementation(
             already_in_extras = already_registered.__module__.startswith(
                 "fileformats.extras"
             )
+            already_overridable = already_registered in _OVERRIDABLE_IMPLEMENTATIONS
             if implementation.__module__.startswith("fileformats.extras"):
                 if already_in_extras:
                     raise FileFormatsClashingExtrasImplementationError(
@@ -430,7 +446,7 @@ def extra_implementation(
                         "this should not be happening, please report "
                         "this to the developers"
                     )
-                else:
+                elif not already_overridable:
                     logger.debug(
                         "Silently ignoring internal implementation of %s extra for %s in favor of "
                         "externally defined %s",
@@ -438,11 +454,11 @@ def extra_implementation(
                         dispatched_type,
                         implementation,
                     )
-                return implementation
+                    return implementation
             else:
-                if already_in_extras:
+                if already_in_extras or already_overridable:
                     logger.debug(
-                        "Silently ignoring implementation of %s extra for %s from extras module in favor of "
+                        "Silently ignoring overridable implementation of %s extra for %s in favor of "
                         "externally defined %s",
                         method,
                         dispatched_type,
@@ -458,6 +474,8 @@ def extra_implementation(
         # (on Python < 3.14), which fails for types from optional dependencies that are
         # only imported when type-checking (e.g. "numpy.ndarray")
         dispatch_method.register(dispatched_type, implementation)
+        if overridable:
+            _OVERRIDABLE_IMPLEMENTATIONS.add(implementation)
         return implementation
 
     return extra_implementation_decorator
