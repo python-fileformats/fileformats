@@ -7,7 +7,7 @@
         <link rel="prefetch" href="_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="_static/favicon.png"><!-- Generated with Sphinx 9.2.0 and Furo 2025.12.19 -->
-        <title>API - FileFormats v0.22.3</title>
+        <title>API - FileFormats v0.22.4</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -168,7 +168,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">FileFormats v0.22.3</div></a>
+      <a href="index.html"><div class="brand">FileFormats v0.22.4</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -192,7 +192,7 @@
     <img class="sidebar-logo" src="_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.22.3</span>
+  <span class="sidebar-brand-text">FileFormats v0.22.4</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -1050,9 +1050,19 @@ calling <code class="docutils literal notranslate"><span class="pre">implementat
 
 <dl class="py function">
 <dt class="sig sig-object py" id="fileformats.core.extra_implementation">
-<span class="sig-prename descclassname"><span class="pre">fileformats.core.</span></span><span class="sig-name descname"><span class="pre">extra_implementation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ExtraMethod</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">ExtraImplementation</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ExtraImplementation</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/fileformats/core/extras.html#extra_implementation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fileformats.core.extra_implementation" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">fileformats.core.</span></span><span class="sig-name descname"><span class="pre">extra_implementation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ExtraMethod</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overridable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">ExtraImplementation</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ExtraImplementation</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/fileformats/core/extras.html#extra_implementation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fileformats.core.extra_implementation" title="Link to this definition">¶</a></dt>
 <dd><p>A decorator which uses singledispatch to facilitate the registering of
 &quot;extra&quot; functionality in external packages (e.g. &quot;fileformats-extras&quot;)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>method</strong> (<em>Callable</em>) -- the extra method to implement, e.g. <code class="docutils literal notranslate"><span class="pre">FileSet.load</span></code></p></li>
+<li><p><strong>overridable</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><em>bool</em></a>) -- whether another implementation can replace this one for the same type. Always
+the case for implementations in extras packages, this is for ones without
+external dependencies that are defined alongside the format in the main package</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -1619,7 +1629,7 @@ which is under the <cite>field</cite> namespace, e.g. <cite>field/integer</cite>
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=538ffb98"></script>
+</div><script src="_static/documentation_options.js?v=39a018dc"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
