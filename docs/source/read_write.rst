@@ -104,9 +104,10 @@ Types from optional dependencies are given as dotted-path strings (e.g.
 Supported formats
 ~~~~~~~~~~~~~~~~~
 
-The following formats (and their subclasses) currently implement ``load`` and ``save``
-in the `fileformats-extras <https://pypi.org/project/fileformats-extras/>`__ package.
-The optional dependencies needed are installed with the extra given in brackets, e.g.
+The following formats (and their subclasses) currently implement ``load`` and ``save``.
+``Json`` is implemented in the main package, and the others in the
+`fileformats-extras <https://pypi.org/project/fileformats-extras/>`__ package. The
+optional dependencies needed are installed with the extra given in brackets, e.g.
 ``pip install fileformats-extras[application]``.
 
 .. list-table::
@@ -115,7 +116,10 @@ The optional dependencies needed are installed with the extra given in brackets,
     * - Format
       - Loaded type
       - Install
-    * - ``fileformats.application.Json``, ``fileformats.application.Yaml``
+    * - ``fileformats.application.Json``
+      - ``dict | list | str | int | float | bool | None``
+      - ``fileformats``
+    * - ``fileformats.application.Yaml``
       - ``dict | list | str | int | float | bool | None``
       - ``fileformats-extras[application]``
     * - ``fileformats.application.Dicom``

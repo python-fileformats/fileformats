@@ -1,6 +1,14 @@
+import json
 import typing as ty
+from pathlib import Path
 
-from fileformats.core import DataType
+from fileformats.core import (
+    DataType,
+    FileSet,
+    SampleFileGenerator,
+    extra_implementation,
+)
+from fileformats.core.exceptions import FormatMismatchError
 from fileformats.core.mixin import WithClassifier
 from fileformats.core.typing import TypeAlias
 from fileformats.generic import UnicodeFile
@@ -61,3 +69,41 @@ class Yaml(TextSerialization):
 
 class Toml(TextSerialization):
     ext = ".toml"
+
+
+# JSON only requires the standard library so doesn't need to be in the extras package
+
+
+@extra_implementation(FileSet.generate_sample_data, overridable=True)
+def generate_json_sample_data(
+    js: Json,
+    generator: SampleFileGenerator,
+) -> ty.List[Path]:
+    js_file = generator.generate_fspath(file_type=Json)
+    with open(js_file, "w") as f:
+        json.dump(
+            {
+                "a": True,
+                "b": "two",
+                "c": 3,
+                "d": [generator.rng.randint(0, 10), generator.rng.random(), 6],
+            },
+            f,
+        )
+    return [js_file]
+
+
+@extra_implementation(FileSet.load, overridable=True)
+def load(jsn: Json, **kwargs: ty.Any) -> SerializationType:
+    try:
+        with jsn.open() as f:
+            data: SerializationType = json.load(f, **kwargs)
+    except json.JSONDecodeError as e:
+        raise FormatMismatchError(f"'{jsn.fspath}' is not a valid JSON file") from e
+    return data
+
+
+@extra_implementation(FileSet.save, overridable=True)
+def save(jsn: Json, data: SerializationType, **kwargs: ty.Any) -> None:
+    with jsn.open("w") as f:
+        json.dump(data, f, **kwargs)

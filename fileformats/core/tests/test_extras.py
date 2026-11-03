@@ -358,16 +358,89 @@ def test_extra_inherited_from_other_namespace(tmp_path: Path):
     """Implementations registered in the extras module of a base class in another
     namespace are found, even if that module hasn't been imported yet (run in a separate
     process so it definitely hasn't been)"""
+    fspath = tmp_path / "a.yaml"
+    fspath.write_text("a: 1\n")
+    script = f"""
+import sys
+from fileformats.application import Yaml
+
+class OtherNamespaceYaml(Yaml):
+    __module__ = "test_other_namespace"
+
+assert "fileformats.extras.application" not in sys.modules
+assert OtherNamespaceYaml({str(fspath)!r}).load() == {{"a": 1}}
+"""
+    subprocess.run([sys.executable, "-c", script], check=True)
+
+
+def test_json_without_extras_package(tmp_path: Path):
+    """JSON only needs the standard library so it shouldn't need any extras package
+    (run in a separate process so the extras package can be made unimportable)"""
     fspath = tmp_path / "a.json"
     fspath.write_text('{"a": 1}')
     script = f"""
 import sys
+sys.modules["fileformats.extras"] = None
 from fileformats.application import Json
 
-class OtherNamespaceJson(Json):
-    __module__ = "test_other_namespace"
+jsn = Json({str(fspath)!r})
+assert jsn.load() == {{"a": 1}}
+jsn.save([1, 2])
+assert jsn.load() == [1, 2]
+assert isinstance(Json.sample().load(), dict)
+"""
+    subprocess.run([sys.executable, "-c", script], check=True)
 
-assert "fileformats.extras.application" not in sys.modules
-assert OtherNamespaceJson({str(fspath)!r}).load() == {{"a": 1}}
+
+def test_override_core_implementation(tmp_path: Path):
+    """Implementations in the core package are overridable, like those in extras packages,
+    but only once as two external implementations still clash (run in a separate process
+    so the override doesn't leak into other tests)"""
+    fspath = tmp_path / "a.json"
+    fspath.write_text('{"a": 1}')
+    script = f"""
+import typing as ty
+from fileformats.application import Json
+from fileformats.application.serialization import SerializationType
+from fileformats.core import FileSet, extra_implementation
+from fileformats.core.exceptions import FileFormatsClashingExtrasImplementationError
+
+@extra_implementation(FileSet.load)
+def override_load(jsn: Json, **kwargs: ty.Any) -> SerializationType:
+    return "overridden"
+
+assert Json({str(fspath)!r}).load() == "overridden"
+
+try:
+    @extra_implementation(FileSet.load)
+    def second_override_load(jsn: Json, **kwargs: ty.Any) -> SerializationType:
+        return "overridden again"
+except FileFormatsClashingExtrasImplementationError:
+    pass
+else:
+    raise AssertionError("Second external implementation should have clashed")
+"""
+    subprocess.run([sys.executable, "-c", script], check=True)
+
+
+def test_extras_package_overrides_core_implementation(tmp_path: Path):
+    """Implementations in extras packages take precedence over overridable ones in the
+    core package (run in a separate process so the override doesn't leak into other
+    tests)"""
+    fspath = tmp_path / "a.json"
+    fspath.write_text('{"a": 1}')
+    script = f"""
+import typing as ty
+from fileformats.application import Json
+from fileformats.application.serialization import SerializationType
+from fileformats.core import FileSet, extra_implementation
+
+def extras_load(jsn: Json, **kwargs: ty.Any) -> SerializationType:
+    return "from extras"
+
+extras_load.__module__ = "fileformats.extras.mock"
+extra_implementation(FileSet.load)(extras_load)
+
+assert Json({str(fspath)!r}).load() == "from extras"
 """
     subprocess.run([sys.executable, "-c", script], check=True)
