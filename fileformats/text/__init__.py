@@ -3,6 +3,11 @@ from .base import Text
 from .unicode import (
     N3,
     T140,
+    _1dInterleavedParityfec,
+    Calendar,
+    Cql,
+    CqlExpression,
+    CqlIdentifier,
     Css,
     Csv,
     CsvSchema,
@@ -14,8 +19,10 @@ from .unicode import (
     Gff3,
     GrammarRefList,
     Hl7v2,
+    Html,
     Javascript,
     JcrCnd,
+    Markdown,
     Mizar,
     Parameters,
     Parityfec,
@@ -26,6 +33,7 @@ from .unicode import (
     Prs_Prop_Logic,
     Raptorfec,
     Red,
+    RestructedText,
     Rfc822Headers,
     RichText,
     RtpEncAescm128,
@@ -55,8 +63,7 @@ from fileformats.application import (  # isort: skip
 )
 
 __all__ = [
-    "__version__",
-    "_1d_interleaved_parityfec",
+    "_1dInterleavedParityfec",
     "CacheManifest",
     "Calendar",
     "Cql",
@@ -89,6 +96,7 @@ __all__ = [
     "Prs_Prop_Logic",
     "Raptorfec",
     "Red",
+    "RestructedText",
     "Rfc822Headers",
     "RichText",
     "RtpEncAescm128",
