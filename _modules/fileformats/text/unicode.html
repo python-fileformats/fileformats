@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.2.0 and Furo 2025.12.19 -->
-        <title>fileformats.text.unicode - FileFormats v0.22.4</title>
+        <title>fileformats.text.unicode - FileFormats v0.22.5</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.22.4</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.22.5</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.22.4</span>
+  <span class="sidebar-brand-text">FileFormats v0.22.5</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -293,21 +293,30 @@
 
 
 
+<div class="viewcode-block" id="Html">
+<a class="viewcode-back" href="../../../reference/text.html#fileformats.application.Html">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Html</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">UnicodeFile</span><span class="p">):</span>
     <span class="n">ext</span> <span class="o">=</span> <span class="s2">".html"</span>
     <span class="n">alternate_exts</span> <span class="o">=</span> <span class="p">(</span><span class="s2">".htm"</span><span class="p">,)</span>
-    <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">"text/html"</span>
+    <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">"text/html"</span></div>
 
 
+
+<div class="viewcode-block" id="Markdown">
+<a class="viewcode-back" href="../../../reference/text.html#fileformats.application.Markdown">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Markdown</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">UnicodeFile</span><span class="p">):</span>
     <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">"text/markdown"</span>
     <span class="n">ext</span> <span class="o">=</span> <span class="s2">".md"</span>
-    <span class="n">alternate_exts</span> <span class="o">=</span> <span class="p">(</span><span class="s2">".markdown"</span><span class="p">,)</span>
+    <span class="n">alternate_exts</span> <span class="o">=</span> <span class="p">(</span><span class="s2">".markdown"</span><span class="p">,)</span></div>
 
 
+
+<div class="viewcode-block" id="RestructedText">
+<a class="viewcode-back" href="../../../reference/text.html#fileformats.application.RestructedText">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RestructedText</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">UnicodeFile</span><span class="p">):</span>
     <span class="n">ext</span> <span class="o">=</span> <span class="s2">".rst"</span>
-    <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">"text/x-rst"</span>
+    <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">"text/x-rst"</span></div>
+
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_1dInterleavedParityfec</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">UnicodeFile</span><span class="p">):</span>
@@ -317,6 +326,8 @@
     <span class="n">ext</span> <span class="o">=</span> <span class="kc">None</span>
 
 
+<div class="viewcode-block" id="Calendar">
+<a class="viewcode-back" href="../../../reference/text.html#fileformats.application.Calendar">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Calendar</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">UnicodeFile</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""This media type is designed</span>
 <span class="sd">    for widespread use by Internet calendaring and scheduling</span>
@@ -327,28 +338,38 @@
 
     <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">"text/calendar"</span>
     <span class="n">ext</span> <span class="o">=</span> <span class="s2">".ics"</span>
-    <span class="n">alternate_exts</span> <span class="o">=</span> <span class="p">(</span><span class="s2">".ifb"</span><span class="p">,)</span>
+    <span class="n">alternate_exts</span> <span class="o">=</span> <span class="p">(</span><span class="s2">".ifb"</span><span class="p">,)</span></div>
 
 
+
+<div class="viewcode-block" id="Cql">
+<a class="viewcode-back" href="../../../reference/text.html#fileformats.application.Cql">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Cql</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">UnicodeFile</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">""""""</span>
 
     <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">"text/cql"</span>
-    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".CQL"</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="s2">".CQL"</span></div>
 
 
+
+<div class="viewcode-block" id="CqlExpression">
+<a class="viewcode-back" href="../../../reference/text.html#fileformats.application.CqlExpression">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CqlExpression</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">UnicodeFile</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">""""""</span>
 
     <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">"text/cql-expression"</span>
-    <span class="n">ext</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 
+
+<div class="viewcode-block" id="CqlIdentifier">
+<a class="viewcode-back" href="../../../reference/text.html#fileformats.application.CqlIdentifier">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CqlIdentifier</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">UnicodeFile</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">""""""</span>
 
     <span class="n">iana_mime</span> <span class="o">=</span> <span class="s2">"text/cql-identifier"</span>
-    <span class="n">ext</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="kc">None</span></div>
+
 
 
 <div class="viewcode-block" id="Css">
@@ -837,7 +858,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=39a018dc"></script>
+</div><script src="../../../_static/documentation_options.js?v=a6e28c46"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
