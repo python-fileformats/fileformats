@@ -18,7 +18,7 @@ import fileformats.core
 import fileformats.vendor
 from fileformats.core.exceptions import FormatDefinitionError
 
-from .typing import FspathsInputType
+from .typing import FspathsInputType, PathType
 
 logger = logging.getLogger("fileformats")
 
@@ -123,7 +123,14 @@ def fspaths_converter(fspaths: FspathsInputType) -> ty.FrozenSet[Path]:
         fspaths = fspaths.fspaths
     elif isinstance(fspaths, (str, os.PathLike)):
         fspaths = [Path(fspaths)]
-    return frozenset(_resolve_windows_path(Path(p).absolute()) for p in fspaths)
+    return frozenset(fspath_converter(p) for p in fspaths)
+
+
+def fspath_converter(fspath: PathType) -> Path:
+    """Normalises a single fs-path the same way as ``fspaths_converter``, i.e. to an
+    absolute pathlib.Path (with Windows mapped drives resolved to their UNC form), so
+    it can be compared with the fs-paths of a file-set"""
+    return _resolve_windows_path(Path(fspath).absolute())
 
 
 # Cache of drive-letter → UNC root (None if not a mapped network drive)

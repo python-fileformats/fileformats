@@ -127,3 +127,21 @@ def test_from_paths(tmp_path) -> None:
         from_paths(fspaths, Json, Yaml, Zip, Foo, Bar)
 
     from_paths(fspaths, Json, Yaml, Zip, Foo, Bar, ignore=r".*\.txt")
+
+
+def test_from_paths_relative(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Paths relative to the working directory are matched to the file-sets they are
+    used in, even though the file-sets store them as absolute paths"""
+    sub_dir = tmp_path / "sub"
+    sub_dir.mkdir()
+    json = Json.sample(sub_dir, seed=1)
+    yaml = Yaml.sample(sub_dir, seed=1)
+    monkeypatch.chdir(tmp_path)
+    rel_paths = [p.relative_to(tmp_path) for p in (json.fspath, yaml.fspath)]
+    assert not any(p.is_absolute() for p in rel_paths)
+
+    detected = from_paths(rel_paths, Json, Yaml)
+
+    assert set(detected) == {json, yaml}
+    # the same path given twice (relative and absolute) is only used once
+    assert from_paths([rel_paths[0], json.fspath], Json) == [json]
