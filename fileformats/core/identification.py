@@ -7,7 +7,11 @@ import typing as ty
 from pathlib import Path
 
 import fileformats.core
-from fileformats.core.exceptions import FormatDefinitionError, FormatRecognitionError
+from fileformats.core.exceptions import (
+    FormatDefinitionError,
+    FormatMismatchError,
+    FormatRecognitionError,
+)
 
 from .convertible import ConvertibleToMarker
 from .utils import (
@@ -304,7 +308,7 @@ def from_paths(
         ignore_re = re.compile(ignore)
         remaining = [p for p in remaining if not ignore_re.match(p.name)]
     if remaining:
-        raise FormatRecognitionError(
+        raise FormatMismatchError(
             "the following file-system paths were not recognised by any of the "
             f"candidate formats ({candidates_str}):\n"
             + "\n".join(str(p) for p in remaining)
