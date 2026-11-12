@@ -50,7 +50,12 @@ from .loaded import Loaded, check_loaded
 from .mock import MockMixin
 from .sampling import SampleFileGenerator
 from .typing import CryptoMethod, FspathsInputType, PathType
-from .utils import add_exc_note, fspaths_converter, import_extras_module
+from .utils import (
+    add_exc_note,
+    fspath_converter,
+    fspaths_converter,
+    import_extras_module,
+)
 
 if ty.TYPE_CHECKING:
     from .converter_helpers import Converter
@@ -1778,7 +1783,10 @@ class FileSet(DataType):
         remaining : set[Path]
             remaining file-system paths that weren't used in any of the file-sets
         """
-        fspaths = [Path(p) for p in fspaths]
+        # Normalise the paths the same way the file-sets do, so that paths given
+        # relative to the working directory can be matched against the fs-paths of the
+        # file-sets they are used in (dict.fromkeys drops duplicates, keeping order)
+        fspaths = list(dict.fromkeys(fspath_converter(p) for p in fspaths))
         filesets = set()
         remaining = set(fspaths)
         for fspath in fspaths:
