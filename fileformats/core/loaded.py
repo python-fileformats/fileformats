@@ -5,7 +5,7 @@
     Annotated[Json.loaded_type, LoadedMarker(Json)]
 
 so ``Json.load()`` still returns a plain ``dict``, while anything that reads
-signatures (pydra, xnat-ingest, docs tooling) can recover the source format with
+signatures (pydra, accessionflow, docs tooling) can recover the source format with
 ``LoadedMarker.from_hint(hint).format``. Static type checkers see ``Loaded[X]`` as
 ``Any``.
 
