@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.2.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.identification - FileFormats v0.22.5</title>
+        <title>fileformats.core.identification - FileFormats v0.22.6</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.22.5</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.22.6</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.22.5</span>
+  <span class="sidebar-brand-text">FileFormats v0.22.6</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -265,7 +265,11 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">fileformats.core</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">fileformats.core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">FormatDefinitionError</span><span class="p">,</span> <span class="n">FormatRecognitionError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fileformats.core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">FormatDefinitionError</span><span class="p">,</span>
+    <span class="n">FormatMismatchError</span><span class="p">,</span>
+    <span class="n">FormatRecognitionError</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.convertible</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConvertibleToMarker</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -573,7 +577,7 @@
         <span class="n">ignore_re</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">ignore</span><span class="p">)</span>
         <span class="n">remaining</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">remaining</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">ignore_re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)]</span>
     <span class="k">if</span> <span class="n">remaining</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">FormatRecognitionError</span><span class="p">(</span>
+        <span class="k">raise</span> <span class="n">FormatMismatchError</span><span class="p">(</span>
             <span class="s2">"the following file-system paths were not recognised by any of the "</span>
             <span class="sa">f</span><span class="s2">"candidate formats (</span><span class="si">{</span><span class="n">candidates_str</span><span class="si">}</span><span class="s2">):</span><span class="se">\n</span><span class="s2">"</span>
             <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">remaining</span><span class="p">)</span>
@@ -666,7 +670,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=a6e28c46"></script>
+</div><script src="../../../_static/documentation_options.js?v=dc5437a9"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
