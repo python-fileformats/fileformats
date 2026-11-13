@@ -104,8 +104,9 @@ class FileSetMetadata(ty.MutableMapping[str, ty.Any]):
     layer is cached and re-read when the file mtimes change (see
     ``FileSet._loaded_metadata``); the overlay is kept separately from that cache, so
     values set on the object are not lost when the loaded layer is invalidated. When
-    the ``FileSet`` was constructed with an explicit ``metadata=`` mapping the file is
-    not read at all and only the overlay is exposed.
+    reading is disabled (``read_metadata=False`` passed to ``FileSet(...)``, or
+    ``read_disabled`` set to True) the file(s) aren't read and only the overlay is
+    exposed.
     """
 
     def __init__(
@@ -116,6 +117,18 @@ class FileSetMetadata(ty.MutableMapping[str, ty.Any]):
     ) -> None:
         self._fileset = fileset
         self._overlay: ty.Dict[str, ty.Any] = dict(overlay) if overlay else {}
+        self._read_disabled = read_disabled
+
+    @property
+    def read_disabled(self) -> bool:
+        """Whether the file(s) are never read for metadata, so that only the overlay is
+        exposed. Can be set after the file-set is created, e.g. to stop the file(s) of
+        file-sets identified by ``from_paths`` being read when their metadata isn't
+        needed"""
+        return self._read_disabled
+
+    @read_disabled.setter
+    def read_disabled(self, read_disabled: bool) -> None:
         self._read_disabled = read_disabled
 
     @property
@@ -206,13 +219,16 @@ class FileSet(DataType):
         a set of file-system paths pointing to all the resources in the file-set
     metadata : dict[str, Any] | None
         metadata associated with the file-set, typically lazily loaded via `read_metadata`
-        extra hook but can be provided directly at the time of instantiation. Providing it
-        here also suppresses reading from the file(s); further entries can still be added
-        via ``fileset.metadata[key] = value``.
+        extra hook but can be provided directly at the time of instantiation. Values
+        provided here take precedence over those read from the file(s), which are still
+        read for any other keys unless ``read_metadata`` is False. Further entries can be
+        added via ``fileset.metadata[key] = value``.
     read_metadata : bool
         whether the file(s) may be read (lazily, via the `read_metadata` extra) to
-        populate ``metadata``. Pass ``False`` to start from an empty, in-memory-only
-        metadata mapping that is still writable via ``fileset.metadata[key] = value``.
+        populate ``metadata``, True by default. Pass ``False`` to only use the
+        ``metadata`` provided, which is still writable via
+        ``fileset.metadata[key] = value``, e.g. to avoid reading the headers of many
+        files when their metadata isn't needed.
     **load_kwargs : ty.Any
         Any keyword arguments to be passed through to `read_metadata` and `load`
         implementations when loading metadata and data to fill the `metadata` and `contents`
@@ -248,6 +264,7 @@ class FileSet(DataType):
         self,
         *fspaths: FspathsInputType,
         metadata: ty.Optional[ty.Dict[str, ty.Any]] = None,
+        read_metadata: bool = True,
         **load_kwargs: ty.Any,
     ):
         self._explicit_metadata = metadata
@@ -262,13 +279,14 @@ class FileSet(DataType):
             raise TypeError(
                 f"FileSet metadata value needs to be None or dict, not {metadata} ({self})"
             )
-        # The file(s) are not read for metadata when ``read_metadata=False`` is passed
-        # or when an explicit ``metadata=`` mapping is given; in either case values can
-        # still be added/overridden later via ``fileset.metadata[key] = value`` (see
-        # ``FileSetMetadata``).
+        # Any explicit ``metadata=`` mapping overlays the metadata read from the
+        # file(s), which aren't read at all when ``read_metadata=False`` is passed. In
+        # either case values can still be added/overridden later via
+        # ``fileset.metadata[key] = value`` (see ``FileSetMetadata``).
         self._metadata = FileSetMetadata(
             self,
             overlay=metadata,
+            read_disabled=not read_metadata,
         )
         self._validate_properties()
 
