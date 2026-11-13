@@ -170,8 +170,8 @@ def test_metadata_equality_with_plain_dict(file_with_metadata_fspath):
 
 
 def test_read_metadata_false_starts_empty_but_writable(file_with_metadata_fspath):
-    mf = FileWithMetadata(file_with_metadata_fspath)
-    mf.metadata._read_disabled = True
+    mf = FileWithMetadata(file_with_metadata_fspath, read_metadata=False)
+    assert mf.metadata.read_disabled
     assert dict(mf.metadata) == {}  # file not read
     mf.metadata["injected"] = "yes"
     assert dict(mf.metadata) == {"injected": "yes"}
@@ -183,3 +183,26 @@ def test_read_metadata_true_is_the_default(file_with_metadata_fspath):
     mf = FileWithMetadata(file_with_metadata_fspath, read_metadata=True)
     assert mf.metadata["a"] == "1"
     assert sorted(mf.metadata) == ["a", "b", "c", "d", "e"]
+
+
+def test_read_metadata_false_keeps_explicit_metadata(file_with_metadata_fspath):
+    mf = FileWithMetadata(
+        file_with_metadata_fspath, metadata={"a": "explicit"}, read_metadata=False
+    )
+    assert dict(mf.metadata) == {"a": "explicit"}  # file not read for "b".."e"
+
+
+def test_read_metadata_is_not_passed_to_reader(file_with_metadata_fspath):
+    # 'read_metadata' is a constructor arg, not one of the load kwargs that are
+    # passed through to the read_metadata extra
+    mf = FileWithMetadata(file_with_metadata_fspath, read_metadata=True)
+    assert "read_metadata" not in mf._load_kwargs
+
+
+def test_read_disabled_can_be_set_after_creation(file_with_metadata_fspath):
+    mf = FileWithMetadata(file_with_metadata_fspath)
+    mf.metadata["injected"] = "yes"
+    mf.metadata.read_disabled = True
+    assert dict(mf.metadata) == {"injected": "yes"}
+    mf.metadata.read_disabled = False
+    assert mf.metadata["a"] == "1"
