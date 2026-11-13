@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/logo_small.png" as="image">
 
     <link rel="shortcut icon" href="../../../_static/favicon.png"><!-- Generated with Sphinx 9.2.0 and Furo 2025.12.19 -->
-        <title>fileformats.core.fileset - FileFormats v0.22.6</title>
+        <title>fileformats.core.fileset - FileFormats v0.22.7</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=beddf052" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">FileFormats v0.22.6</div></a>
+      <a href="../../../index.html"><div class="brand">FileFormats v0.22.7</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
     <img class="sidebar-logo" src="../../../_static/logo_small.png" alt="Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">FileFormats v0.22.6</span>
+  <span class="sidebar-brand-text">FileFormats v0.22.7</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -362,8 +362,9 @@
 <span class="sd">    layer is cached and re-read when the file mtimes change (see</span>
 <span class="sd">    ``FileSet._loaded_metadata``); the overlay is kept separately from that cache, so</span>
 <span class="sd">    values set on the object are not lost when the loaded layer is invalidated. When</span>
-<span class="sd">    the ``FileSet`` was constructed with an explicit ``metadata=`` mapping the file is</span>
-<span class="sd">    not read at all and only the overlay is exposed.</span>
+<span class="sd">    reading is disabled (``read_metadata=False`` passed to ``FileSet(...)``, or</span>
+<span class="sd">    ``read_disabled`` set to True) the file(s) aren't read and only the overlay is</span>
+<span class="sd">    exposed.</span>
 <span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -374,6 +375,18 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fileset</span> <span class="o">=</span> <span class="n">fileset</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_overlay</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">overlay</span><span class="p">)</span> <span class="k">if</span> <span class="n">overlay</span> <span class="k">else</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_read_disabled</span> <span class="o">=</span> <span class="n">read_disabled</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read_disabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Whether the file(s) are never read for metadata, so that only the overlay is</span>
+<span class="sd">        exposed. Can be set after the file-set is created, e.g. to stop the file(s) of</span>
+<span class="sd">        file-sets identified by ``from_paths`` being read when their metadata isn't</span>
+<span class="sd">        needed"""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_disabled</span>
+
+    <span class="nd">@read_disabled</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read_disabled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">read_disabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_read_disabled</span> <span class="o">=</span> <span class="n">read_disabled</span>
 
     <span class="nd">@property</span>
@@ -466,13 +479,16 @@
 <span class="sd">        a set of file-system paths pointing to all the resources in the file-set</span>
 <span class="sd">    metadata : dict[str, Any] | None</span>
 <span class="sd">        metadata associated with the file-set, typically lazily loaded via `read_metadata`</span>
-<span class="sd">        extra hook but can be provided directly at the time of instantiation. Providing it</span>
-<span class="sd">        here also suppresses reading from the file(s); further entries can still be added</span>
-<span class="sd">        via ``fileset.metadata[key] = value``.</span>
+<span class="sd">        extra hook but can be provided directly at the time of instantiation. Values</span>
+<span class="sd">        provided here take precedence over those read from the file(s), which are still</span>
+<span class="sd">        read for any other keys unless ``read_metadata`` is False. Further entries can be</span>
+<span class="sd">        added via ``fileset.metadata[key] = value``.</span>
 <span class="sd">    read_metadata : bool</span>
 <span class="sd">        whether the file(s) may be read (lazily, via the `read_metadata` extra) to</span>
-<span class="sd">        populate ``metadata``. Pass ``False`` to start from an empty, in-memory-only</span>
-<span class="sd">        metadata mapping that is still writable via ``fileset.metadata[key] = value``.</span>
+<span class="sd">        populate ``metadata``, True by default. Pass ``False`` to only use the</span>
+<span class="sd">        ``metadata`` provided, which is still writable via</span>
+<span class="sd">        ``fileset.metadata[key] = value``, e.g. to avoid reading the headers of many</span>
+<span class="sd">        files when their metadata isn't needed.</span>
 <span class="sd">    **load_kwargs : ty.Any</span>
 <span class="sd">        Any keyword arguments to be passed through to `read_metadata` and `load`</span>
 <span class="sd">        implementations when loading metadata and data to fill the `metadata` and `contents`</span>
@@ -508,6 +524,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="n">fspaths</span><span class="p">:</span> <span class="n">FspathsInputType</span><span class="p">,</span>
         <span class="n">metadata</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">ty</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">read_metadata</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="o">**</span><span class="n">load_kwargs</span><span class="p">:</span> <span class="n">ty</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_explicit_metadata</span> <span class="o">=</span> <span class="n">metadata</span>
@@ -522,13 +539,14 @@
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"FileSet metadata value needs to be None or dict, not </span><span class="si">{</span><span class="n">metadata</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2">)"</span>
             <span class="p">)</span>
-        <span class="c1"># The file(s) are not read for metadata when ``read_metadata=False`` is passed</span>
-        <span class="c1"># or when an explicit ``metadata=`` mapping is given; in either case values can</span>
-        <span class="c1"># still be added/overridden later via ``fileset.metadata[key] = value`` (see</span>
-        <span class="c1"># ``FileSetMetadata``).</span>
+        <span class="c1"># Any explicit ``metadata=`` mapping overlays the metadata read from the</span>
+        <span class="c1"># file(s), which aren't read at all when ``read_metadata=False`` is passed. In</span>
+        <span class="c1"># either case values can still be added/overridden later via</span>
+        <span class="c1"># ``fileset.metadata[key] = value`` (see ``FileSetMetadata``).</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span> <span class="o">=</span> <span class="n">FileSetMetadata</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">overlay</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
+            <span class="n">read_disabled</span><span class="o">=</span><span class="ow">not</span> <span class="n">read_metadata</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_properties</span><span class="p">()</span>
 
@@ -2844,7 +2862,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=dc5437a9"></script>
+</div><script src="../../../_static/documentation_options.js?v=4316a333"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
