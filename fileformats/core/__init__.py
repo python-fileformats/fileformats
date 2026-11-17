@@ -2,6 +2,7 @@ from ._version import __version__
 from .classifier import Classifier
 from .convertible import ConvertibleTo, ConvertibleToMarker
 from .datatype import DataType, FieldPrimitive
+from .converter_helpers import get_converter, get_converters, union_members
 from .decorators import mtime_cached_property, validated_property
 from .extras import (
     converter,
@@ -40,8 +41,11 @@ __all__ = [
     "find_matching",
     "from_mime",
     "from_paths",
+    "get_converter",
+    "get_converters",
     "mtime_cached_property",
     "staged_out_dir",
     "to_mime",
+    "union_members",
     "validated_property",
 ]

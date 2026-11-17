@@ -1,10 +1,17 @@
 import tempfile
+import typing as ty
 from pathlib import Path
 
 import pytest
 from pydra.compose import python
 
-from fileformats.core import converter
+from fileformats.core import (
+    ConvertibleTo,
+    converter,
+    get_converter,
+    get_converters,
+    union_members,
+)
 from fileformats.core.converter_chain import ConverterChain
 from fileformats.core.exceptions import FormatConversionError
 from fileformats.testing import (
@@ -173,3 +180,65 @@ def test_chained_converter_kwargs_fail(tmp_path: Path, kwargs, match):
 
     with pytest.raises(FormatConversionError, match=match):
         ChainDst.convert(ChainSrc(src_path), **kwargs)
+
+
+def test_union_members():
+    assert union_members(ChainSrc) == (ChainSrc,)
+    assert union_members(ty.Optional[ChainSrc]) == (ChainSrc,)
+    assert union_members(ChainSrc | ChainMid | None) == (ChainSrc, ChainMid)
+    assert union_members(ty.Union[ChainSrc, ty.Union[ChainMid, ChainSrc]]) == (
+        ChainSrc,
+        ChainMid,
+    )
+    assert union_members(None) == ()
+    assert set(union_members(ConvertibleTo[ChainDst])) >= {ChainSrc, ChainDst}
+
+
+def test_get_converter_single_target():
+    assert get_converter(ChainMid, ChainSrc) is ChainMid.get_converter(ChainSrc)
+    assert get_converter(ChainSrc, ChainSrc) is None
+
+
+def test_get_converter_union_target():
+    # Picks the first member of the target union that can be converted into
+    conv = get_converter(CycleC | ChainMid | ChainDst, ChainSrc)
+    assert conv is ChainMid.get_converter(ChainSrc)
+    # Optional targets and sources
+    conv = get_converter(ty.Optional[ChainMid], ty.Optional[ChainSrc])
+    assert conv is ChainMid.get_converter(ChainSrc)
+
+
+def test_get_converter_union_target_no_conversion_preferred():
+    # The source is a member of the union, so no conversion is required even though
+    # an earlier member can be converted into
+    assert get_converter(ChainMid | ChainSrc, ChainSrc) is None
+
+
+def test_get_converter_union_target_chains():
+    assert get_converter(CycleC | ChainDst, ChainSrc).is_chain
+    with pytest.raises(FormatConversionError):
+        get_converter(CycleC | ChainDst, ChainSrc, allow_chains=False)
+
+
+def test_get_converter_union_target_not_found():
+    with pytest.raises(FormatConversionError, match="any of"):
+        get_converter(CycleC | AmbiguousDst, ChainSrc)
+
+
+def test_get_converter_union_source_error():
+    with pytest.raises(TypeError, match="get_converters"):
+        get_converter(ChainDst, ChainSrc | ChainMid)
+
+
+def test_get_converters():
+    convs = get_converters(ChainDst | ChainMid, ChainSrc | ChainMid | None)
+    assert list(convs) == [ChainSrc, ChainMid]
+    # The first member of the target union is converted into, even if via a chain
+    assert convs[ChainSrc] is ChainDst.get_converter(ChainSrc)
+    assert convs[ChainSrc].is_chain
+    assert convs[ChainMid] is None
+
+
+def test_get_converters_not_found():
+    with pytest.raises(FormatConversionError):
+        get_converters(ChainMid, ChainSrc | CycleA)
